@@ -21,6 +21,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme.dart';
 import '../data/expense_store.dart';
 import 'add_expense_screen.dart';
+import 'backup_screen.dart';
 import 'budget_home_screen.dart';
 import 'budget_screen.dart';
 import 'language_slider.dart';
@@ -28,6 +29,7 @@ import 'loan_ledger_home_screen.dart';
 import 'loan_ledger_summary_screen.dart';
 import 'history_screen.dart';
 import 'reminders_screen.dart';
+import 'savings_goals_section.dart';
 import 'statistics_screen.dart';
 import 'theme_slider.dart';
 import 'udhar_list_screen.dart';
@@ -72,6 +74,175 @@ class _HomeScreenState extends State<HomeScreen> {
     if (confirmed == true) await store.clearAllExpenses();
   }
 
+  /// PIN lock toggle (v7.4, stretch): turning it on asks
+  /// for a new 4-digit PIN twice; turning it off asks for
+  /// the current PIN first, so nobody can switch the lock
+  /// off without knowing it.
+  Future<void> _togglePin(bool enable) async {
+    final store = context.read<ExpenseStore>();
+    final strings = store.strings;
+    if (enable) {
+      final pinController = TextEditingController();
+      final confirmController = TextEditingController();
+      String? error;
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: Text(strings.setPin),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: pinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: strings.enterPin,
+                        counterText: '',
+                      ),
+                      onChanged: (_) {
+                        if (error != null) {
+                          setDialogState(() => error = null);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirmController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: strings.confirmPin,
+                        counterText: '',
+                      ),
+                      onChanged: (_) {
+                        if (error != null) {
+                          setDialogState(() => error = null);
+                        }
+                      },
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        error!,
+                        style: const TextStyle(
+                          color: CashWiseTheme.danger,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(strings.cancel),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final pin = pinController.text.trim();
+                      if (!ExpenseStore.isValidPin(pin)) {
+                        setDialogState(
+                          () => error = strings.pinMustBe4Digits,
+                        );
+                        return;
+                      }
+                      if (pin != confirmController.text.trim()) {
+                        setDialogState(
+                          () => error = strings.pinMismatch,
+                        );
+                        return;
+                      }
+                      await store.setPin(pin);
+                      if (context.mounted) {
+                        Navigator.of(context).pop(true);
+                      }
+                    },
+                    child: Text(strings.save),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+      pinController.dispose();
+      confirmController.dispose();
+      if (saved == true) setState(() {});
+      return;
+    }
+    final pinController = TextEditingController();
+    String? error;
+    final removed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(strings.pinLock),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: pinController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 4,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: strings.enterPin,
+                      counterText: '',
+                    ),
+                    onChanged: (_) {
+                      if (error != null) {
+                        setDialogState(() => error = null);
+                      }
+                    },
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      error!,
+                      style: const TextStyle(
+                        color: CashWiseTheme.danger,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(strings.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (store.verifyPin(pinController.text.trim())) {
+                      await store.clearPin();
+                      if (context.mounted) {
+                        Navigator.of(context).pop(true);
+                      }
+                    } else {
+                      setDialogState(() => error = strings.pinWrong);
+                    }
+                  },
+                  child: Text(strings.save),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    pinController.dispose();
+    if (removed == true) setState(() {});
+  }
+
   /// About: everything about the app — what it does, all its
   /// features, and what's new in this version. The What's new
   /// text is updated with every version (see localization).
@@ -88,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'v7.3',
+                'v7.4',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
@@ -1104,6 +1275,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              // PIN lock (v7.4, stretch): optional 4-digit lock
+              // on app start — the switch opens the set/verify
+              // dialog, so the drawer never shows the PIN.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        strings.pinLock,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Switch(
+                      value: store.pinEnabled,
+                      onChanged: (value) => _togglePin(value),
+                    ),
+                  ],
+                ),
+              ),
               ListTile(
                 leading: const Icon(
                   Icons.delete_forever,
@@ -1130,6 +1325,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
                     slideRoute(const HistoryScreen()),
+                  );
+                },
+              ),
+              // Backup & Export (v7.4): the whole app as one
+              // JSON backup, expenses as a CSV, import to
+              // restore — here in the drawer, above About.
+              ListTile(
+                leading: const Icon(Icons.backup_outlined),
+                title: Text(strings.backupExport),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    slideRoute(const BackupScreen()),
                   );
                 },
               ),
@@ -1384,6 +1592,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+                    // Savings goals (v7.4) — targets with a
+                    // progress ring, under the two categories.
+                    const SavingsGoalsSection(),
                     const SizedBox(height: 24),
                     Text(
                       strings.aboutText,

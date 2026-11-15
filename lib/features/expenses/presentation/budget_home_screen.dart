@@ -12,12 +12,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/amount_row.dart';
+import '../../../core/confirm_dialog.dart';
 import '../../../core/page_transitions.dart';
 import '../../../core/theme.dart';
 import '../data/expense_store.dart';
 import 'add_expense_screen.dart';
 import 'budget_detail_screen.dart';
 import 'budget_screen.dart';
+import 'recurring_rule_sheet.dart';
 import 'statistics_screen.dart';
 
 class BudgetHomeScreen extends StatelessWidget {
@@ -332,6 +334,187 @@ class BudgetHomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                   ],
+                  // --- Recurring expenses & bills (v7.4) ---
+                  // The rules live here, on the Budget home page:
+                  // each rule is a row (title, day of month,
+                  // amount) — tap to edit, bin to delete. When
+                  // rules posted on this app open, a small note
+                  // says so at the top of the section.
+                  if (store.recurringPostedToday > 0) ...[
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      color: Theme.of(context).brightness ==
+                              Brightness.dark
+                          ? const Color(0xFF123B2E)
+                          : const Color(0xFFECFDF5),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 20,
+                              color: CashWiseTheme.success,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                strings.recurringPostedToday(
+                                  store.recurringPostedToday,
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          strings.recurringExpenses,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () =>
+                            showRecurringRuleSheet(context),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            strings.addRecurring,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (store.recurringRules.isEmpty)
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          strings.noRecurring,
+                          style: TextStyle(
+                            color: _secondary(context),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    for (final rule in store.recurringRules)
+                      Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: InkWell(
+                          onTap: () => showRecurringRuleSheet(
+                            context,
+                            rule: rule,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: Theme.of(context)
+                                              .brightness ==
+                                          Brightness.dark
+                                      ? CashWiseTheme.darkCard
+                                      : const Color(0xFFE3EDE8),
+                                  foregroundColor:
+                                      const Color(0xFF0C4444),
+                                  child: const Icon(
+                                    Icons.repeat,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        rule.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${strings.recurringDayLabel(rule.dayOfMonth)} • '
+                                        '${strings.categoryName(rule.category)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: _secondary(context),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  store.formatAmount(rule.amountPkr),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 20),
+                                  tooltip: strings.editRecurring,
+                                  onPressed: () =>
+                                      showRecurringRuleSheet(
+                                    context,
+                                    rule: rule,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 20,
+                                    color: CashWiseTheme.danger,
+                                  ),
+                                  tooltip: strings.delete,
+                                  onPressed: () async {
+                                    final confirmed =
+                                        await confirmDelete(
+                                      context,
+                                      strings,
+                                      strings.deleteRecurringConfirm,
+                                    );
+                                    if (confirmed) {
+                                      await store.removeRecurringRule(
+                                        rule.id,
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  const SizedBox(height: 16),
                   Text(
                     strings.quickActions,
                     style: const TextStyle(

@@ -17,6 +17,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/amount_row.dart';
 import '../../../core/confirm_dialog.dart';
+import '../../../core/gradient_button.dart';
 import '../../../core/page_transitions.dart';
 import '../../../core/theme.dart';
 import '../data/expense_store.dart';
@@ -27,6 +28,7 @@ import 'cashflow_predictor.dart';
 import 'category_chart.dart';
 import 'category_style.dart';
 import 'expense_detail_screen.dart';
+import 'monthly_report_screen.dart';
 
 class StatisticsScreen extends StatefulWidget {
   /// Which tab to open on: 0 = Expenses, 1 = AI Predictor,
@@ -496,6 +498,17 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     ],
                   ),
                 ),
+              // Monthly report (v7.4): the same month at a
+              // glance, shareable as text — opened from here.
+              const SizedBox(height: 20),
+              GradientButton(
+                label: strings.monthlyReport,
+                onPressed: () {
+                  Navigator.of(context).push(
+                    slideRoute(const MonthlyReportScreen()),
+                  );
+                },
+              ),
             ],
           ),
         ),
