@@ -256,6 +256,60 @@ class AppLocale {
   String get spent => _get('spent');
   String get noBudgetsYet => _get('noBudgetsYet');
   String get time => _get('time');
+  String get recurring => _get('recurring');
+  String get recurringExpenses => _get('recurringExpenses');
+  String get addRecurring => _get('addRecurring');
+  String get editRecurring => _get('editRecurring');
+  String get recurringName => _get('recurringName');
+  String get dayOfMonth => _get('dayOfMonth');
+  String recurringDayLabel(int d) =>
+      _get('recurringDayLabel').replaceAll('{d}', '$d');
+  String recurringPostedToday(int n) =>
+      _get('recurringPostedToday').replaceAll('{n}', '$n');
+  String get noRecurring => _get('noRecurring');
+  String get deleteRecurringConfirm => _get('deleteRecurringConfirm');
+  String get backupExport => _get('backupExport');
+  String get exportBackup => _get('exportBackup');
+  String get exportExpensesCsv => _get('exportExpensesCsv');
+  String get importBackup => _get('importBackup');
+  String get importBackupConfirm => _get('importBackupConfirm');
+  String get importSuccess => _get('importSuccess');
+  String get importFailed => _get('importFailed');
+  String get backupInfo => _get('backupInfo');
+  String get savingsGoals => _get('savingsGoals');
+  String get addGoal => _get('addGoal');
+  String get editGoal => _get('editGoal');
+  String get goalName => _get('goalName');
+  String get goalNameHint => _get('goalNameHint');
+  String get targetAmount => _get('targetAmount');
+  String get savedAmount => _get('savedAmount');
+  String get deadline => _get('deadline');
+  String get noDeadline => _get('noDeadline');
+  String get addMoney => _get('addMoney');
+  String get noGoals => _get('noGoals');
+  String get goalReached => _get('goalReached');
+  String get deleteGoalConfirm => _get('deleteGoalConfirm');
+  String get enterGoalName => _get('enterGoalName');
+  String get goalNeedsBudget => _get('goalNeedsBudget');
+  String get monthlyReport => _get('monthlyReport');
+  String get shareReport => _get('shareReport');
+  String get totalSpent => _get('totalSpent');
+  String get budgetVsActual => _get('budgetVsActual');
+  String get loanMovement => _get('loanMovement');
+  String get received => _get('received');
+  String get paid => _get('paid');
+  String get share => _get('share');
+  String get enterValidAmount => _get('enterValidAmount');
+  String get copiedToClipboard => _get('copiedToClipboard');
+  String get pinLock => _get('pinLock');
+  String get setPin => _get('setPin');
+  String get enterPin => _get('enterPin');
+  String get confirmPin => _get('confirmPin');
+  String get pinWrong => _get('pinWrong');
+  String get pinMismatch => _get('pinMismatch');
+  String get pinMustBe4Digits => _get('pinMustBe4Digits');
+  String get unlock => _get('unlock');
+  String get unlockApp => _get('unlockApp');
 
   /// e.g. "Monthly budget updated to $500." — {amount} is replaced with
   /// the already-formatted amount, so no language mixing is introduced.
@@ -320,8 +374,8 @@ const List<AppLocale> appLocales = [
       'password': 'Password',
       'fullName': 'Full name',
       'createAccount': 'Create account',
-      'alreadyHaveAccount': 'Already have an account? Log in',
-      'dontHaveAccount': "Don't have an account? Register",
+      'alreadyHaveAccount': 'Already have an account? Sign in',
+      'dontHaveAccount': "Don't have an account? Create account",
       'invalidCredentials': 'Wrong email or password.',
       'fillAllFields': 'Please fill in all fields.',
       'logout': 'Log out',
@@ -414,15 +468,15 @@ const List<AppLocale> appLocales = [
       'aboutDescription':
           'Hisaab Kitaab is a personal finance companion built for everyday money in Pakistan. Set monthly budgets \u2014 one or several \u2014 track every expense by category, lend and borrow with due dates, times and partial payments in the Loan Ledger, and set your own reminders for any payment — the app only ever reminds you when you asked it to. A local cash-flow predictor shows when your budget will run out, before it happens. Everything works offline, in English or Urdu, with your data staying on your device.',
       'aboutFeatures':
-          '\u2022 Monthly budgets \u2014 named by you, each with its own screen, expenses and alerts\n\u2022 Expenses \u2014 categories, search, filters and a pie chart of where the money goes\n\u2022 Loan Ledger \u2014 Receivables and Payables, due dates and times, partial payments, full history\n\u2022 Reminders \u2014 only the ones you set yourself, for any payment or budget, always in the future — plus a Bin that keeps deleted items for 30 days\n\u2022 AI cash-flow predictor \u2014 daily average, projected month-end spend and run-out date\n\u2022 English and Urdu \u2014 full translation, Urdu script throughout, right-to-left layout\n\u2022 Light and dark themes, and a wallet welcome every time the app opens\n\u2022 Works fully offline \u2014 no account, no server, no internet needed',
+          '\u2022 Monthly budgets \u2014 named by you, each with its own screen, expenses and alerts\n\u2022 Expenses \u2014 categories, search, filters and a pie chart of where the money goes\n\u2022 Loan Ledger \u2014 Receivables and Payables, due dates and times, partial payments, full history\n\u2022 Reminders \u2014 only the ones you set yourself, for any payment or budget, always in the future — plus a Bin that keeps deleted items for 30 days\n\u2022 AI cash-flow predictor \u2014 daily average, projected month-end spend and run-out date\n\u2022 English and Urdu \u2014 full translation, Urdu script throughout, right-to-left layout\n\u2022 Light and dark themes, and a wallet welcome every time the app opens\n\u2022 Recurring expenses \u2014 monthly bills post themselves on the day you choose, once a month, never twice\n\u2022 Backup & Export \u2014 the whole app as one JSON backup, expenses as a CSV, and import to restore it\n\u2022 Savings goals \u2014 a target, a progress ring, and Add money that really moves the money out of your budget\n\u2022 Monthly report \u2014 this month\u2019s spending, top category, budget vs actual and loan movement, shareable as text\n\u2022 PIN lock \u2014 an optional 4-digit PIN on app start (only its hash is stored, never the PIN itself)\n\u2022 Continue with Google \u2014 sign in with your Google account, no password to remember\n\u2022 Works fully offline \u2014 no account, no server, no internet needed',
       'aboutDeveloperTitle': 'About the developer',
       'aboutDeveloper':
           'Hisaab Kitaab is built by Malik Ali Raza — a Flutter & Web Developer and Software Engineering student at Riphah International University, Sahiwal. He builds real apps people actually use, with clean architecture, and is open to internships and freelance work.',
       'aboutPrivacy':
           'Privacy: your budgets, expenses and loans are stored only on this device. Hisaab Kitaab never uploads your financial data anywhere.',
-      'whatsNew': "What's new in v7.3",
+      'whatsNew': "What's new in v7.5",
       'whatsNewText':
-          '• A new wallet + phone logo — navy wallet, fanned teal banknotes and a teal phone with a gold bell — in the app, on the launcher and on the web\n• A new welcome: the phone rises out of the wallet, its screen lights up with a gold glow, and the home page grows out of the phone screen\n• A new look — Deep Midnight Teal + Soft Pearl: deep midnight teal headers and buttons on a soft pearl background, pearl text in dark mode',
+          '• Continue with Google — sign in with your Google account, it works now\n• Already have an account? Sign in — the link on Create Account always shows now, and you can switch between Sign in and Create account',
       'paymentTime': 'Payment time',
       'history': 'History',
       'editBudget': 'Edit budget',
@@ -489,6 +543,64 @@ const List<AppLocale> appLocales = [
       'spent': 'Spent',
       'noBudgetsYet': 'No budgets yet',
       'time': 'Time',
+      'recurring': 'Recurring',
+      'recurringExpenses': 'Recurring expenses',
+      'addRecurring': 'Add recurring expense',
+      'editRecurring': 'Edit recurring expense',
+      'recurringName': 'Name',
+      'dayOfMonth': 'Day of month',
+      'recurringDayLabel': 'Day {d} of every month',
+      'recurringPostedToday': '{n} recurring expense posted today',
+      'noRecurring': 'No recurring expenses yet.',
+      'deleteRecurringConfirm':
+          'Delete this recurring expense? It will not be posted in future months.',
+      'backupExport': 'Backup & Export',
+      'exportBackup': 'Export backup (JSON)',
+      'exportExpensesCsv': 'Export expenses (CSV)',
+      'importBackup': 'Import backup',
+      'importBackupConfirm':
+          'Importing replaces all your current data with the backup. Continue?',
+      'importSuccess': 'Backup imported.',
+      'importFailed':
+          'Could not import this file. Check that it is a Hisaab Kitaab backup.',
+      'backupInfo':
+          'The backup holds everything — budgets, expenses, loans, reminders, recurring expenses and savings goals. Your password is never included.',
+      'savingsGoals': 'Savings goals',
+      'addGoal': 'Add savings goal',
+      'editGoal': 'Edit savings goal',
+      'goalName': 'Goal name',
+      'goalNameHint': 'e.g. Umrah, New bike, Emergency fund',
+      'targetAmount': 'Target amount',
+      'savedAmount': 'Saved',
+      'deadline': 'Deadline (optional)',
+      'noDeadline': 'No deadline',
+      'addMoney': 'Add money',
+      'noGoals': 'No savings goals yet.',
+      'goalReached': 'Goal reached!',
+      'deleteGoalConfirm':
+          'Delete this savings goal? The money already added stays in your expenses.',
+      'enterGoalName': 'Enter a goal name.',
+      'goalNeedsBudget':
+          'Set a budget first — adding money to a goal records it against your budget.',
+      'monthlyReport': 'Monthly report',
+      'shareReport': 'Share report',
+      'totalSpent': 'Total spent',
+      'budgetVsActual': 'Budget vs actual',
+      'loanMovement': 'Loan movement',
+      'received': 'Received',
+      'paid': 'Paid',
+      'share': 'Share',
+      'enterValidAmount': 'Enter a valid amount above 0.',
+      'copiedToClipboard': 'Copied to clipboard.',
+      'pinLock': 'PIN lock',
+      'setPin': 'Set PIN',
+      'enterPin': 'Enter your 4-digit PIN',
+      'confirmPin': 'Confirm PIN',
+      'pinWrong': 'Wrong PIN. Try again.',
+      'pinMismatch': 'The PINs do not match.',
+      'pinMustBe4Digits': 'The PIN must be exactly 4 digits.',
+      'unlock': 'Unlock',
+      'unlockApp': 'Unlock the app',
       'cashFlowPrediction': 'Cash-flow prediction',
       'projectedMonthEnd': 'Projected month-end spend',
       'dailyAverage': 'Daily average',
@@ -561,7 +673,7 @@ const List<AppLocale> appLocales = [
       'fullName': 'پورا نام',
       'createAccount': 'اکاؤنٹ بنائیں',
       'alreadyHaveAccount': 'اکاؤنٹ پہلے سے ہے؟ لاگ ان کریں',
-      'dontHaveAccount': 'اکاؤنٹ نہیں ہے؟ رجسٹر کریں',
+      'dontHaveAccount': 'اکاؤنٹ نہیں ہے؟ اکاؤنٹ بنائیں',
       'invalidCredentials': 'ای میل یا پاس ورڈ غلط ہے۔',
       'fillAllFields': 'براہ کرم تمام خانے پُر کریں۔',
       'logout': 'لاگ آؤٹ',
@@ -653,15 +765,15 @@ const List<AppLocale> appLocales = [
       'aboutDescription':
           'حساب کتاب پاکستان میں روزمرہ کے پیسوں کے لیے بنایا گیا ذاتی مالی ساتھی ہے۔ ایک یا کئی ماہانہ بجٹ بنائیں، ہر خرچ کو زمرے کے حساب سے ٹریک کریں، ادھار کھاتے میں مقررہ تاریخ، وقت اور جزوی ادائیگیوں کے ساتھ پیسے دیں اور لیں، اور کسی بھی ادائیگی کے لیے اپنی یاد دہانی لگائیں — ایپ صرف تب یاد دلائے گی جب آپ نے کہا ہو۔ مقامی کیش فلو پیش گوئی بتاتی ہے کہ بجٹ کب ختم ہوگا — ختم ہونے سے پہلے۔ سب کچھ آف لائن کام کرتا ہے، انگریزی یا اردو میں، اور آپ کا ڈیٹا آپ کے آلے پر ہی رہتا ہے۔',
       'aboutFeatures':
-          '• ماہانہ بجٹ — اپنے نام والے کئی بجٹ، ہر ایک کی اپنی اسکرین، خرچے اور الرٹس\n• خرچے — زمرے، تلاش، فلٹر اور پائی چارٹ جس سے پتا چلے پیسہ کہاں گیا\n• ادھار کھاتہ — وصولیاں اور ادائیگیاں، مقررہ تاریخ و وقت، جزوی ادائیگیاں، مکمل تاریخ\n• یاد دہانیاں — صرف آپ کی لگائی ہوئی یاد دہانیاں، کسی بھی ادائیگی یا بجٹ کے لیے، ہمیشہ مستقبل میں — اور بن جو حذف شدہ اشیاء 30 دن رکھتا ہے\n• اے آئی کیش فلو پیش گوئی — روزانہ اوسط، مہینے کے آخر کا تخمینہ اور بجٹ ختم ہونے کی تاریخ\n• انگریزی اور اردو — مکمل ترجمہ، ہر جگہ اردو رسم الخط، دائیں سے بائیں ترتیب\n• ہلکا اور گہرا تھیم، اور ہر بار ایپ کھلنے پر والٹ خوش آمدید\n• مکمل طور پر آف لائن — نہ اکاؤنٹ، نہ سرور، نہ انٹرنیٹ کی ضرورت',
+          '• ماہانہ بجٹ — اپنے نام والے کئی بجٹ، ہر ایک کی اپنی اسکرین، خرچے اور الرٹس\n• خرچے — زمرے، تلاش، فلٹر اور پائی چارٹ جس سے پتا چلے پیسہ کہاں گیا\n• ادھار کھاتہ — وصولیاں اور ادائیگیاں، مقررہ تاریخ و وقت، جزوی ادائیگیاں، مکمل تاریخ\n• یاد دہانیاں — صرف آپ کی لگائی ہوئی یاد دہانیاں، کسی بھی ادائیگی یا بجٹ کے لیے، ہمیشہ مستقبل میں — اور بن جو حذف شدہ اشیاء 30 دن رکھتا ہے\n• اے آئی کیش فلو پیش گوئی — روزانہ اوسط، مہینے کے آخر کا تخمینہ اور بجٹ ختم ہونے کی تاریخ\n• انگریزی اور اردو — مکمل ترجمہ، ہر جگہ اردو رسم الخط، دائیں سے بائیں ترتیب\n• ہلکا اور گہرا تھیم، اور ہر بار ایپ کھلنے پر والٹ خوش آمدید\n• بار بار آنے والے خرچے — ماہانہ بل آپ کی منتخب تاریخ پر خود بخود شامل ہو جاتے ہیں، مہینے میں ایک بار، کبھی دو بار نہیں\n• بیک اپ اور ایکسپورٹ — پوری ایپ ایک JSON بیک اپ میں، خرچے CSV میں، اور بحالی کے لیے بیک اپ درآمد کریں\n• بچت کے اہداف — ہدف، پیش رفت کا دائرہ، اور رقم شامل کرنا جو پیسے کو واقعی آپ کے بجٹ سے نکال دیتا ہے\n• ماہانہ رپورٹ — اس مہینے کا خرچ، سب سے زیادہ خرچ، بجٹ بمقابلہ اصل خرچ اور ادھار کی نقل و حرکت، متن کے طور پر شیئر کریں\n• پن لاک — ایپ کھلنے پر اختیاری 4 ہندسوں کا پن (صرف اس کا ہیش محفوظ ہوتا ہے، پن خود کبھی نہیں)\n• گوگل سے سائن ان — اپنے گوگل اکاؤنٹ سے سائن ان کریں، پاس ورڈ یاد رکھنے کی ضرورت نہیں\n• مکمل طور پر آف لائن — نہ اکاؤنٹ، نہ سرور، نہ انٹرنیٹ کی ضرورت',
       'aboutDeveloperTitle': 'ڈویلپر کے بارے میں',
       'aboutDeveloper':
           'حساب کتاب ملک علی رضا نے بنائی ہے — ایک Flutter اور Web Developer اور Riphah International University, Sahiwal میں Software Engineering کے طالب علم۔ وہ صاف architecture کے ساتھ حقیقی ایپس بناتے ہیں جو لوگ واقعی استعمال کرتے ہیں، اور انٹرنشپ اور فری لانس کام کے لیے دستیاب ہیں۔',
       'aboutPrivacy':
           'رازداری: آپ کے بجٹ، خرچے اور قرض صرف اس آلے پر محفوظ ہوتے ہیں۔ حساب کتاب آپ کا مالی ڈیٹا کہیں بھی نہیں بھیجتا۔',
-      'whatsNew': 'v7.3 میں نیا کیا ہے',
+      'whatsNew': 'v7.5 میں نیا کیا ہے',
       'whatsNewText':
-          '• نیا والٹ + فون لوگو — نیلا والٹ، سبز نوٹ اور فون، سنہری گھنٹی — ایپ، لانچر اور ویب پر\n• نیا خوش آمدید: فون والٹ سے اوپر اٹھتا ہے، اس کی اسکرین سنہری روشنی سے روشن ہوتی ہے، اور ہوم پیج فون کی اسکرین سے ظاہر ہوتا ہے\n• نیا انداز — گہرا نیلگوں سبز + نرم موتی: نرم موتی پس منظر پر گہرے سبز ہیڈر اور بٹن، ڈارک موڈ میں موتی رنگ کا متن',
+          '• گوگل سے سائن ان — اپنے گوگل اکاؤنٹ سے سائن ان کریں، اب یہ کام کرتا ہے\n• اکاؤنٹ پہلے سے ہے؟ لاگ ان کریں — اکاؤنٹ بنانے والے صفحے پر یہ لنک اب ہمیشہ نظر آتا ہے، اور آپ لاگ ان اور اکاؤنٹ بنانے کے درمیان آسانی سے بدل سکتے ہیں',
       'paymentTime': 'ادائیگی کا وقت',
       'history': 'تاریخ',
       'editBudget': 'بجٹ بدلیں',
@@ -728,6 +840,64 @@ const List<AppLocale> appLocales = [
       'spent': 'خرچ',
       'noBudgetsYet': 'ابھی کوئی بجٹ نہیں ہے',
       'time': 'وقت',
+      'recurring': 'بار بار آنے والے',
+      'recurringExpenses': 'بار بار آنے والے خرچے',
+      'addRecurring': 'بار بار آنے والا خرچ شامل کریں',
+      'editRecurring': 'بار بار آنے والا خرچ تبدیل کریں',
+      'recurringName': 'نام',
+      'dayOfMonth': 'مہینے کی تاریخ',
+      'recurringDayLabel': 'ہر مہینے کی {d} تاریخ',
+      'recurringPostedToday': 'آج {n} بار بار آنے والا خرچ شامل ہوا',
+      'noRecurring': 'ابھی کوئی بار بار آنے والا خرچ نہیں۔',
+      'deleteRecurringConfirm':
+          'یہ بار بار آنے والا خرچ حذف کریں؟ یہ آنے والے مہینوں میں شامل نہیں ہوگا۔',
+      'backupExport': 'بیک اپ اور ایکسپورٹ',
+      'exportBackup': 'بیک اپ ایکسپورٹ کریں (JSON)',
+      'exportExpensesCsv': 'اخراجات ایکسپورٹ کریں (CSV)',
+      'importBackup': 'بیک اپ درآمد کریں',
+      'importBackupConfirm':
+          'درآمد کرنے سے آپ کا موجودہ تمام ڈیٹا بیک اپ سے بدل جائے گا۔ جاری رکھیں؟',
+      'importSuccess': 'بیک اپ درآمد ہو گیا۔',
+      'importFailed':
+          'یہ فائل درآمد نہیں ہو سکی۔ یقین کریں کہ یہ حساب کتاب کا بیک اپ ہے۔',
+      'backupInfo':
+          'بیک اپ میں سب کچھ ہوتا ہے — بجٹ، خرچے، ادھار، یاد دہانیاں، بار بار آنے والے خرچے اور بچت کے اہداف۔ آپ کا پاس ورڈ کبھی شامل نہیں ہوتا۔',
+      'savingsGoals': 'بچت کے اہداف',
+      'addGoal': 'بچت کا ہدف شامل کریں',
+      'editGoal': 'بچت کا ہدف تبدیل کریں',
+      'goalName': 'ہدف کا نام',
+      'goalNameHint': 'مثلاً عمرہ، نئی بائیک، ہنگامی فنڈ',
+      'targetAmount': 'ہدف رقم',
+      'savedAmount': 'بچت شدہ',
+      'deadline': 'آخری تاریخ (اختیاری)',
+      'noDeadline': 'کوئی آخری تاریخ نہیں',
+      'addMoney': 'رقم شامل کریں',
+      'noGoals': 'ابھی کوئی بچت کا ہدف نہیں۔',
+      'goalReached': 'ہدف مکمل!',
+      'deleteGoalConfirm':
+          'یہ بچت کا ہدف حذف کریں؟ پہلے شامل کی گئی رقم آپ کے اخراجات میں رہے گی۔',
+      'enterGoalName': 'ہدف کا نام درج کریں۔',
+      'goalNeedsBudget':
+          'پہلے بجٹ سیٹ کریں — ہدف میں رقم شامل کرنا آپ کے بجٹ کے خلاف درج ہوتا ہے۔',
+      'monthlyReport': 'ماہانہ رپورٹ',
+      'shareReport': 'رپورٹ شیئر کریں',
+      'totalSpent': 'کل خرچ',
+      'budgetVsActual': 'بجٹ بمقابلہ اصل خرچ',
+      'loanMovement': 'ادھار کی نقل و حرکت',
+      'received': 'موصول',
+      'paid': 'ادا شدہ',
+      'share': 'شیئر کریں',
+      'enterValidAmount': '0 سے زیادہ درست رقم درج کریں۔',
+      'copiedToClipboard': 'کلپ بورڈ پر کاپی ہو گیا۔',
+      'pinLock': 'پن لاک',
+      'setPin': 'پن سیٹ کریں',
+      'enterPin': 'اپنا 4 ہندسوں کا پن درج کریں',
+      'confirmPin': 'پن کی تصدیق کریں',
+      'pinWrong': 'غلط پن۔ دوبارہ کوشش کریں۔',
+      'pinMismatch': 'پن میل نہیں کھاتے۔',
+      'pinMustBe4Digits': 'پن بالکل 4 ہندسوں کا ہونا چاہیے۔',
+      'unlock': 'ان لاک کریں',
+      'unlockApp': 'ایپ ان لاک کریں',
       'cashFlowPrediction': 'نقد بہاؤ کی پیش گوئی',
       'projectedMonthEnd': 'مہینے کے آخر تک متوقع خرچ',
       'dailyAverage': 'یومیہ اوسط',
