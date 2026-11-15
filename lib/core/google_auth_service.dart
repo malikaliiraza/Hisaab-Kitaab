@@ -21,7 +21,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 /// Paste the OAuth 2.0 Client ID for a Web application here.
 const String kGoogleClientId =
-    'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+    '431951994830-ejerdq89rrdkre181bkrjvvrlplv7uql.apps.googleusercontent.com';
 
 class GoogleAuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
