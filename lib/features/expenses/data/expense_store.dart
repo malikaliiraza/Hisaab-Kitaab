@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,6 +9,8 @@ import '../../../core/roman_urdu.dart';
 import '../../../core/notification_service.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
+import '../models/recurring_rule.dart';
+import '../models/savings_goal.dart';
 import '../models/udhar_entry.dart';
 
 /// Offline-first local store. v2 keeps all data on the device.
@@ -35,6 +38,12 @@ class ExpenseStore extends ChangeNotifier {
   static const _customRemindersKey = 'cashwise_custom_reminders_v1';
   static const _seenCustomRemindersKey =
       'cashwise_seen_custom_reminders_v1';
+  // v7.4: recurring bills + savings goals.
+  static const _recurringKey = 'cashwise_recurring_v1';
+  static const _goalsKey = 'cashwise_goals_v1';
+  // v7.4 (stretch): optional 4-digit PIN lock — only the
+  // SHA-256 hash is stored, never the PIN itself.
+  static const _pinKey = 'cashwise_pin_v1';
 
   /// The Bin keeps a deleted item for 30 days, then it is gone
   /// for good (v7.0).
@@ -403,6 +412,463 @@ class ExpenseStore extends ChangeNotifier {
     await _save();
     notifyListeners();
   }
+  // --- Recurring expenses & bills (v7.4) ---
+  // A rule posts one Expense per month, on its day-of-month.
+  // `lastPostedMonth` ("yyyy-MM") is the guard: a rule posts
+  // only when its day has come AND it has not posted for this
+  // month yet — so it can never double-post in one cycle, even
+  // if the app is opened ten times that day. A missed month
+  // (app not opened) is skipped, never back-filled.
+  final List<RecurringRule> _recurringRules = [];
+
+  List<RecurringRule> get recurringRules =>
+      List.unmodifiable(_recurringRules);
+
+  /// How many rules posted on this app open (transient — shown
+  /// as a small "Posted today" note on the Budget home page).
+  int _recurringPostedToday = 0;
+  int get recurringPostedToday => _recurringPostedToday;
+
+  static String _monthKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}';
+
+  static int _daysInMonthOf(int year, int month) =>
+      DateTime(year, month + 1, 0).day;
+
+  /// Post every rule whose day has come this month and which
+  /// has not posted for this month yet. Returns how many
+  /// expenses were posted. [now] exists so tests can fix the
+  /// date; the app always passes "now".
+  int postDueRecurring({DateTime? now}) {
+    final today = now ?? DateTime.now();
+    final month = _monthKey(today);
+    var posted = 0;
+    // No budget yet = nowhere to post into (v5.0 gate).
+    if (_budgets.isEmpty) {
+      _recurringPostedToday = 0;
+      return 0;
+    }
+    for (var i = 0; i < _recurringRules.length; i++) {
+      final rule = _recurringRules[i];
+      if (rule.lastPostedMonth == month) continue;
+      final day =
+          rule.dayOfMonth.clamp(1, _daysInMonthOf(today.year, today.month));
+      if (today.day < day) continue;
+      // The expense lands in the rule's own budget; a rule
+      // whose budget is gone falls back to the active budget.
+      final budgetId = _budgets.any((b) => b.id == rule.budgetId)
+          ? rule.budgetId
+          : _activeBudgetId;
+      _expenses.insert(
+        0,
+        Expense(
+          id: 'rec-${rule.id}-$month',
+          title: rule.title,
+          amountPkr: rule.amountPkr,
+          category: rule.category,
+          date: DateTime(today.year, today.month, day),
+          budgetId: budgetId,
+        ),
+      );
+      _recurringRules[i] = rule.copyWith(lastPostedMonth: month);
+      posted++;
+    }
+    _recurringPostedToday = posted;
+    return posted;
+  }
+
+  Future<void> addRecurringRule(RecurringRule rule) async {
+    _recurringRules.add(rule);
+    await _save();
+    notifyListeners();
+  }
+
+  Future<void> updateRecurringRule(RecurringRule rule) async {
+    final index = _recurringRules.indexWhere((r) => r.id == rule.id);
+    if (index < 0) return;
+    _recurringRules[index] = rule;
+    await _save();
+    notifyListeners();
+  }
+
+  Future<void> removeRecurringRule(String id) async {
+    _recurringRules.removeWhere((r) => r.id == id);
+    await _save();
+    notifyListeners();
+  }
+
+  // --- Savings goals (v7.4) ---
+  final List<SavingsGoal> _savingsGoals = [];
+
+  List<SavingsGoal> get savingsGoals => List.unmodifiable(_savingsGoals);
+
+  Future<void> addSavingsGoal(SavingsGoal goal) async {
+    _savingsGoals.insert(0, goal);
+    await _save();
+    notifyListeners();
+  }
+
+  Future<void> updateSavingsGoal(SavingsGoal goal) async {
+    final index = _savingsGoals.indexWhere((g) => g.id == goal.id);
+    if (index < 0) return;
+    _savingsGoals[index] = goal;
+    await _save();
+    notifyListeners();
+  }
+
+  Future<void> removeSavingsGoal(String id) async {
+    _savingsGoals.removeWhere((g) => g.id == id);
+    await _save();
+    notifyListeners();
+  }
+
+  /// Add money to a goal — and keep the budget math honest
+  /// (v7.4 decision, see APPLY.md): the money leaves the
+  /// spendable budget as a real expense, "Savings: <goal>",
+  /// in category Other, against the active budget — so
+  /// Remaining drops by exactly the amount set aside, and
+  /// every total, the predictor and the report stay correct
+  /// with no special-casing. The goal's `saved` grows by the
+  /// same amount. Returns false when there is no budget yet
+  /// (the expense cannot be recorded) or the amount is not
+  /// positive. Deleting the goal later does NOT refund the
+  /// money — the expense stays, as it was really set aside.
+  Future<bool> addMoneyToGoal({
+    required String goalId,
+    required double amount,
+  }) async {
+    final index = _savingsGoals.indexWhere((g) => g.id == goalId);
+    if (index < 0 || amount <= 0 || !hasBudget) return false;
+    final goal = _savingsGoals[index];
+    _expenses.insert(
+      0,
+      Expense(
+        id: 'goal-${goal.id}-${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Savings: ${goal.name}',
+        amountPkr: amount,
+        category: 'Other',
+        date: DateTime.now(),
+        budgetId: _activeBudgetId,
+      ),
+    );
+    _savingsGoals[index] = goal.copyWith(saved: goal.saved + amount);
+    await _save();
+    notifyListeners();
+    return true;
+  }
+
+  // --- Export / backup / import (v7.4) ---
+  // One JSON file holds EVERYTHING (passwords are never
+  // exported — the local account password stays on this
+  // device). Import replaces the current data, only after
+  // the user confirms in the UI.
+
+  /// The whole app as one JSON document (version 7 = v7.4
+  /// format: expenses, budgets, udhar, reminders, recurring
+  /// rules and savings goals).
+  String exportBackupJson() {
+    final data = {
+      'app': 'Hisaab Kitaab',
+      'version': 7,
+      'exportedAt': DateTime.now().toIso8601String(),
+      'locale': _locale.code,
+      'darkMode': _isDarkMode,
+      'userName': _userName,
+      'userNameUrdu': _userNameUrdu,
+      'userEmail': _userEmail,
+      'activeBudgetId': _activeBudgetId,
+      'budgets': _budgets.map((b) => b.toJson()).toList(),
+      'expenses': _expenses.map((e) => e.toJson()).toList(),
+      'udhar': _udhar.map((e) => e.toJson()).toList(),
+      'customReminders': _customReminders,
+      'recurringRules':
+          _recurringRules.map((r) => r.toJson()).toList(),
+      'savingsGoals': _savingsGoals.map((g) => g.toJson()).toList(),
+    };
+    return jsonEncode(data);
+  }
+
+  static String _csvField(String value) {
+    if (value.contains(',') ||
+        value.contains('"') ||
+        value.contains('\n')) {
+      return '"${value.replaceAll('"', '""')}"';
+    }
+    return value;
+  }
+
+  /// Every expense as one CSV file: Date, Title, Category,
+  /// Budget, Amount. Dates are ISO (yyyy-MM-dd) so any
+  /// spreadsheet opens the file cleanly.
+  String exportExpensesCsv() {
+    final lines = <String>[
+      'Date,Title,Category,Budget,Amount (Rs.)',
+    ];
+    for (final e in _expenses) {
+      final budget = _budgets
+          .where((b) => b.id == e.budgetId)
+          .firstOrNull;
+      final date =
+          '${e.date.year}-${e.date.month.toString().padLeft(2, '0')}-${e.date.day.toString().padLeft(2, '0')}';
+      lines.add([
+        date,
+        _csvField(e.title),
+        _csvField(e.category),
+        _csvField(budget == null ? '' : budgetDisplayName(budget)),
+        e.amountPkr.toStringAsFixed(0),
+      ].join(','));
+    }
+    return lines.join('\n');
+  }
+
+  /// Restore a backup made by [exportBackupJson]. Parses into
+  /// temporary lists first, so a bad file changes NOTHING —
+  /// the current data is only replaced once the whole file
+  /// parsed cleanly. Returns false for an invalid file.
+  Future<bool> importBackupJson(String jsonText) async {
+    try {
+      final decoded = jsonDecode(jsonText);
+      if (decoded is! Map<String, dynamic>) return false;
+      if (decoded['app'] != 'Hisaab Kitaab') return false;
+      final expenses = (decoded['expenses'] as List<dynamic>? ?? [])
+          .map((e) => Expense.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final budgets = (decoded['budgets'] as List<dynamic>? ?? [])
+          .map((e) => BudgetPeriod.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final udhar = (decoded['udhar'] as List<dynamic>? ?? [])
+          .map((e) => UdharEntry.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final reminders = (decoded['customReminders'] as List<dynamic>? ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map<String, dynamic>))
+          .toList();
+      final rules = (decoded['recurringRules'] as List<dynamic>? ?? [])
+          .map((e) => RecurringRule.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final goals = (decoded['savingsGoals'] as List<dynamic>? ?? [])
+          .map((e) => SavingsGoal.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final localeCode = decoded['locale'] as String?;
+      final activeId = decoded['activeBudgetId'] as String?;
+
+      _expenses
+        ..clear()
+        ..addAll(expenses);
+      _budgets
+        ..clear()
+        ..addAll(budgets);
+      _udhar
+        ..clear()
+        ..addAll(udhar);
+      _customReminders
+        ..clear()
+        ..addAll(reminders);
+      _recurringRules
+        ..clear()
+        ..addAll(rules);
+      _savingsGoals
+        ..clear()
+        ..addAll(goals);
+      if (localeCode != null) _locale = localeByCode(localeCode);
+      if (decoded['darkMode'] is bool) {
+        _isDarkMode = decoded['darkMode'] as bool;
+      }
+      if (decoded['userName'] is String) {
+        _userName = decoded['userName'] as String;
+      }
+      if (decoded['userNameUrdu'] is String) {
+        _userNameUrdu = decoded['userNameUrdu'] as String;
+      }
+      if (decoded['userEmail'] is String) {
+        _userEmail = decoded['userEmail'] as String;
+      }
+      _activeBudgetId = activeId ?? '';
+      if (_budgets.isNotEmpty &&
+          !_budgets.any((b) => b.id == _activeBudgetId)) {
+        _activeBudgetId = _budgets.first.id;
+      }
+      await _save();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // --- Monthly report (v7.4) ---
+  // App-wide numbers for one calendar month (all budgets —
+  // the report is the month's whole picture, not one book):
+  // total spent, top category, budget vs actual per budget,
+  // and the Loan Ledger's movement (lent / borrowed /
+  // received / paid). [now] exists so tests can fix the
+  // month; the screen always passes "now".
+  Map<String, dynamic> monthlyReportData({DateTime? now}) {
+    final today = now ?? DateTime.now();
+    final inMonth = _expenses
+        .where((e) =>
+            e.date.year == today.year && e.date.month == today.month)
+        .toList();
+    final totalSpent =
+        inMonth.fold(0.0, (sum, e) => sum + e.amountPkr);
+    final byCategory = <String, double>{};
+    for (final e in inMonth) {
+      byCategory[e.category] =
+          (byCategory[e.category] ?? 0) + e.amountPkr;
+    }
+    final top = byCategory.entries.isEmpty
+        ? null
+        : byCategory.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final perBudget = _budgets.map((b) {
+      final spent = inMonth
+          .where((e) => e.budgetId == b.id)
+          .fold(0.0, (sum, e) => sum + e.amountPkr);
+      return {
+        'id': b.id,
+        'name': budgetDisplayName(b),
+        'budget': b.amount,
+        'spent': spent,
+        'remaining': b.amount - spent,
+      };
+    }).toList();
+    double lent = 0, borrowed = 0, received = 0, paid = 0;
+    for (final e in _udhar) {
+      final inThisMonth =
+          e.date.year == today.year && e.date.month == today.month;
+      if (inThisMonth) {
+        if (e.isLent) {
+          lent += e.amountPkr;
+        } else {
+          borrowed += e.amountPkr;
+        }
+      }
+      for (final p in e.payments) {
+        if (p.date.year == today.year && p.date.month == today.month) {
+          if (e.isLent) {
+            received += p.amount;
+          } else {
+            paid += p.amount;
+          }
+        }
+      }
+    }
+    return {
+      'year': today.year,
+      'month': today.month,
+      'totalSpent': totalSpent,
+      'topCategory': top?.key ?? '',
+      'topCategoryAmount': top?.value ?? 0.0,
+      'budgets': perBudget,
+      'lent': lent,
+      'borrowed': borrowed,
+      'received': received,
+      'paid': paid,
+    };
+  }
+
+  /// "November 2026" / "نومبر ۲۰۲۶" — the report title.
+  String monthYear(DateTime date) {
+    const enMonths = [
+      'January', 'February', 'March', 'April', 'May', 'June', 'July',
+      'August', 'September', 'October', 'November', 'December',
+    ];
+    const urMonths = [
+      'جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی',
+      'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر',
+    ];
+    if (locale.code == 'ur') {
+      return '${urMonths[date.month - 1]} ${_urduDigits('${date.year}')}';
+    }
+    return '${enMonths[date.month - 1]} ${date.year}';
+  }
+
+  /// The monthly report as shareable plain text (v7.4) — the
+  /// Share button sends exactly this text.
+  String monthlyReportText({DateTime? now}) {
+    final d = monthlyReportData(now: now);
+    final s = strings;
+    final lines = <String>[
+      '$displayBrand — ${s.monthlyReport}',
+      monthYear(now ?? DateTime.now()),
+      '',
+      '${s.totalSpent}: ${formatAmount(d['totalSpent'] as double)}',
+    ];
+    final topCategory = d['topCategory'] as String;
+    if (topCategory.isNotEmpty) {
+      lines.add(
+          '${s.topCategory}: ${s.categoryName(topCategory)} — '
+          '${formatAmount(d['topCategoryAmount'] as double)}');
+    }
+    lines.add('');
+    lines.add(s.budgetVsActual);
+    for (final b in d['budgets'] as List<Map<String, dynamic>>) {
+      lines.add(
+          '${b['name']}: ${formatAmount(b['spent'] as double)} '
+          '/ ${formatAmount(b['budget'] as double)}');
+    }
+    lines.add('');
+    lines.add(s.loanMovement);
+    lines.add('${s.lent}: ${formatAmount(d['lent'] as double)}');
+    lines.add('${s.borrowed}: ${formatAmount(d['borrowed'] as double)}');
+    lines.add('${s.received}: ${formatAmount(d['received'] as double)}');
+    lines.add('${s.paid}: ${formatAmount(d['paid'] as double)}');
+    return lines.join('\n');
+  }
+
+  // --- PIN lock (v7.4, stretch) ---
+  // Optional 4-digit lock: only the SHA-256 hash of the PIN
+  // is stored (cashwise_pin_v1) — the PIN itself is never
+  // saved anywhere. `_pinUnlocked` is transient: it starts
+  // false on every app launch, so the lock screen shows on
+  // app start whenever a PIN is set.
+  String _pinHash = '';
+  bool _pinUnlocked = false;
+
+  bool get pinEnabled => _pinHash.isNotEmpty;
+  bool get pinUnlocked => _pinUnlocked;
+
+  static bool isValidPin(String pin) =>
+      RegExp(r'^[0-9]{4}$').hasMatch(pin);
+
+  static String _hashPin(String pin) =>
+      sha256.convert(utf8.encode('hisaab-kitaab-pin:$pin')).toString();
+
+  /// Set a new 4-digit PIN (returns false for anything that
+  /// is not exactly 4 digits). Setting a PIN unlocks the
+  /// app for this session, so the user is not locked out
+  /// the moment they set it.
+  Future<bool> setPin(String pin) async {
+    if (!isValidPin(pin)) return false;
+    _pinHash = _hashPin(pin);
+    _pinUnlocked = true;
+    await _save();
+    notifyListeners();
+    return true;
+  }
+
+  /// Check a PIN: true unlocks the app for this session.
+  bool verifyPin(String pin) {
+    if (!pinEnabled || !isValidPin(pin)) return false;
+    if (_hashPin(pin) != _pinHash) return false;
+    _pinUnlocked = true;
+    notifyListeners();
+    return true;
+  }
+
+  /// Turn the lock off (the PIN is forgotten).
+  Future<void> clearPin() async {
+    _pinHash = '';
+    _pinUnlocked = false;
+    await _save();
+    notifyListeners();
+  }
+
+  /// Lock again for this session (used on logout).
+  void lockPin() {
+    if (!_pinUnlocked) return;
+    _pinUnlocked = false;
+    notifyListeners();
+  }
+
   // No budget until the user sets one himself (v4.7): the home
   // page starts empty, and Details only appears once a budget and
   // an expense exist.
@@ -784,6 +1250,7 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> logout() async {
     _isLoggedIn = false;
     _showWelcome = false;
+    _pinUnlocked = false; // next login asks for the PIN again.
     await _save();
     notifyListeners();
   }
@@ -940,6 +1407,8 @@ class ExpenseStore extends ChangeNotifier {
     _userEmail = prefs.getString(_userEmailKey) ?? '';
     _userPassword = prefs.getString(_userPasswordKey) ?? '';
     _isLoggedIn = prefs.getBool(_loggedInKey) ?? false;
+    _pinHash = prefs.getString(_pinKey) ?? '';
+    _pinUnlocked = false; // the lock shows on every app start.
     // Budgets (v5.9): load the list; migrate the old single
     // budget into the first budget, and give its expenses the
     // first budget's id.
@@ -1019,6 +1488,27 @@ class ExpenseStore extends ChangeNotifier {
         ..addAll(decoded.map(
             (e) => UdharEntry.fromJson(e as Map<String, dynamic>)));
     }
+    final rawRecurring = prefs.getString(_recurringKey);
+    if (rawRecurring != null && rawRecurring.isNotEmpty) {
+      final decoded = jsonDecode(rawRecurring) as List<dynamic>;
+      _recurringRules
+        ..clear()
+        ..addAll(decoded.map(
+            (e) => RecurringRule.fromJson(e as Map<String, dynamic>)));
+    }
+    final rawGoals = prefs.getString(_goalsKey);
+    if (rawGoals != null && rawGoals.isNotEmpty) {
+      final decoded = jsonDecode(rawGoals) as List<dynamic>;
+      _savingsGoals
+        ..clear()
+        ..addAll(decoded.map(
+            (e) => SavingsGoal.fromJson(e as Map<String, dynamic>)));
+    }
+    // Auto-post this month's due recurring bills (v7.4) —
+    // once per cycle only, guarded by lastPostedMonth.
+    if (postDueRecurring() > 0) {
+      await _save();
+    }
     notifyListeners();
   }
 
@@ -1048,6 +1538,7 @@ class ExpenseStore extends ChangeNotifier {
     await prefs.setString(_userEmailKey, _userEmail);
     await prefs.setString(_userPasswordKey, _userPassword);
     await prefs.setBool(_loggedInKey, _isLoggedIn);
+    await prefs.setString(_pinKey, _pinHash);
     await prefs.setString(
       _expensesKey,
       jsonEncode(_expenses.map((e) => e.toJson()).toList()),
@@ -1055,6 +1546,14 @@ class ExpenseStore extends ChangeNotifier {
     await prefs.setString(
       _udharKey,
       jsonEncode(_udhar.map((e) => e.toJson()).toList()),
+    );
+    await prefs.setString(
+      _recurringKey,
+      jsonEncode(_recurringRules.map((r) => r.toJson()).toList()),
+    );
+    await prefs.setString(
+      _goalsKey,
+      jsonEncode(_savingsGoals.map((g) => g.toJson()).toList()),
     );
   }
 
