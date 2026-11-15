@@ -4,6 +4,7 @@ import 'core/notification_service.dart';
 import 'core/theme.dart';
 import 'features/expenses/data/expense_store.dart';
 import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/pin_lock_screen.dart';
 import 'features/auth/presentation/welcome_transition_screen.dart';
 import 'features/expenses/presentation/home_screen.dart';
 
@@ -47,14 +48,19 @@ class CashWiseApp extends StatelessWidget {
             ),
             // Login / register first — the app never opens
             // straight into the expenses (v4.1).
+            // A PIN, when set, locks the app on every start
+            // (v7.4) — the lock screen comes before the welcome
+            // screen and home, after login.
             // The welcome screen plays on every app open
             // (v6.0): the wallet opens, then home. After a
             // login/register it plays too (showWelcome).
             home: !store.isLoggedIn
                 ? const LoginScreen()
-                : store.showWelcome || store.showLaunchWelcome
-                    ? const WelcomeTransitionScreen()
-                    : const HomeScreen(),
+                : store.pinEnabled && !store.pinUnlocked
+                    ? const PinLockScreen()
+                    : store.showWelcome || store.showLaunchWelcome
+                        ? const WelcomeTransitionScreen()
+                        : const HomeScreen(),
           );
         },
       ),
