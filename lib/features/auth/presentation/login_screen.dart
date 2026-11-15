@@ -6,9 +6,11 @@
 // the expenses — not a secure server account.
 //
 // Rules (user's words, v4.5):
-// - First time (no account on this device): only Create account is
-//   possible — the "Already have an account? Log in" switch is
-//   hidden until an account exists.
+// - The mode switch at the bottom ("Already have an account?
+//   Sign in" / "Don't have an account? Create account") is always
+//   shown, both ways (user asked 2026-11-14). Accounts are local
+//   to this device, so Sign in only works for an account created
+//   on this device.
 // - Errors appear UNDER the field they belong to, and only after the
 //   user submits (or finishes the field) — never while typing.
 // - One error at a time, in order: length, uppercase, lowercase,
@@ -201,8 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final store = context.watch<ExpenseStore>();
     final strings = store.strings;
     final locale = store.locale;
-    // First time: no account exists, so Sign in is not offered at all.
-    final hasAccount = store.userEmail.isNotEmpty;
 
     return Directionality(
       textDirection: locale.isRtl ? TextDirection.rtl : TextDirection.ltr,
@@ -396,30 +396,28 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ],
-                        if (hasAccount) ...[
-                          const SizedBox(height: 4),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _isLogin = !_isLogin;
-                                _clearErrors();
-                                _captchaKey.currentState?.reset();
-                              });
-                            },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 2,
-                              ),
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                        const SizedBox(height: 4),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _isLogin = !_isLogin;
+                              _clearErrors();
+                              _captchaKey.currentState?.reset();
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 2,
                             ),
-                            child: Text(
-                              _isLogin
-                                  ? strings.dontHaveAccount
-                                  : strings.alreadyHaveAccount,
-                            ),
+                            tapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
-                        ],
+                          child: Text(
+                            _isLogin
+                                ? strings.dontHaveAccount
+                                : strings.alreadyHaveAccount,
+                          ),
+                        ),
                       ],
                     ),
                   ),
