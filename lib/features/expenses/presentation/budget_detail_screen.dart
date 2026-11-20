@@ -18,6 +18,7 @@ import '../data/expense_store.dart';
 import '../models/budget.dart';
 import 'add_expense_screen.dart';
 import 'budget_screen.dart';
+import 'category_cap_sheet.dart';
 import 'expense_detail_screen.dart';
 import 'statistics_screen.dart';
 
@@ -456,6 +457,87 @@ class BudgetDetailScreen extends StatelessWidget {
                                     CashWiseTheme.lightAccent,
                                   ),
                                 ),
+                              ),
+                              // Monthly cap (v7.6): this month's
+                              // spend against the cap, with a
+                              // warning when it is over — and a
+                              // tap to set or change the cap.
+                              const SizedBox(height: 6),
+                              Builder(
+                                builder: (context) {
+                                  final cap = store.capFor(
+                                    b.id,
+                                    entry.key,
+                                  );
+                                  final spentThisMonth =
+                                      store.categorySpentThisMonth(
+                                    b.id,
+                                    entry.key,
+                                  );
+                                  final overAmount =
+                                      cap != null &&
+                                              spentThisMonth > cap.amount
+                                          ? spentThisMonth - cap.amount
+                                          : null;
+                                  final capText = cap == null
+                                      ? strings.noCapSet
+                                      : '${strings.monthlyCap}: '
+                                          '${store.formatAmount(cap.amount)}'
+                                          ' • ${strings.thisMonth}: '
+                                          '${store.formatAmount(spentThisMonth)}';
+                                  return Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              capText,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: _secondary(context),
+                                              ),
+                                            ),
+                                            if (overAmount != null) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                strings.overCapBy(
+                                                  store.formatAmount(
+                                                    overAmount,
+                                                  ),
+                                                ),
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight:
+                                                      FontWeight.bold,
+                                                  color:
+                                                      CashWiseTheme.danger,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            showCategoryCapSheet(
+                                          context,
+                                          budgetId: b.id,
+                                          category: entry.key,
+                                        ),
+                                        child: Text(
+                                          cap == null
+                                              ? strings.setCategoryCap
+                                              : strings.editCategoryCap,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                               if (entry != sortedCategories.last)
                                 const SizedBox(height: 12),
