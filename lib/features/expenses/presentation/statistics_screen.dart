@@ -28,7 +28,9 @@ import 'cashflow_predictor.dart';
 import 'category_chart.dart';
 import 'category_style.dart';
 import 'expense_detail_screen.dart';
+import 'month_comparison_card.dart';
 import 'monthly_report_screen.dart';
+import 'monthly_trend_chart.dart';
 
 class StatisticsScreen extends StatefulWidget {
   /// Which tab to open on: 0 = Expenses, 1 = AI Predictor,
@@ -438,80 +440,95 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
 
     Widget summaryTab() {
-      return Card(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                strings.summary,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              AmountRow(
-                label: strings.budget,
-                amount: store.formatAmount(scopedBudgetAmount),
-              ),
-              AmountRow(
-                label: strings.spentThisMonth,
-                amount: store.formatAmount(scopedSpent),
-              ),
-              AmountRow(
-                label: strings.remaining,
-                amount: store.formatAmount(scopedRemaining),
-              ),
-              AmountRow(
-                label: strings.dailyAverage,
-                amount: store.formatAmount(scopedDailyAverage),
-              ),
-              AmountRow(
-                label: strings.projectedMonthEnd,
-                amount: store.formatAmount(scopedProjected),
-              ),
-              if (topCategory != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(strings.topCategory),
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(
-                          '${strings.categoryName(topCategory.key)} — '
-                          '${store.formatAmount(topCategory.value)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+      return Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    strings.summary,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              // Monthly report (v7.4): the same month at a
-              // glance, shareable as text — opened from here.
-              const SizedBox(height: 20),
-              GradientButton(
-                label: strings.monthlyReport,
-                onPressed: () {
-                  Navigator.of(context).push(
-                    slideRoute(const MonthlyReportScreen()),
-                  );
-                },
+                  const SizedBox(height: 12),
+                  AmountRow(
+                    label: strings.budget,
+                    amount: store.formatAmount(scopedBudgetAmount),
+                  ),
+                  AmountRow(
+                    label: strings.spentThisMonth,
+                    amount: store.formatAmount(scopedSpent),
+                  ),
+                  AmountRow(
+                    label: strings.remaining,
+                    amount: store.formatAmount(scopedRemaining),
+                  ),
+                  AmountRow(
+                    label: strings.dailyAverage,
+                    amount: store.formatAmount(scopedDailyAverage),
+                  ),
+                  AmountRow(
+                    label: strings.projectedMonthEnd,
+                    amount: store.formatAmount(scopedProjected),
+                  ),
+                  if (topCategory != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(strings.topCategory),
+                          ),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              '${strings.categoryName(topCategory.key)} — '
+                              '${store.formatAmount(topCategory.value)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Monthly report (v7.4): the same month at a
+                  // glance, shareable as text — opened from here.
+                  const SizedBox(height: 20),
+                  GradientButton(
+                    label: strings.monthlyReport,
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        slideRoute(const MonthlyReportScreen()),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          // Monthly trend + month-over-month comparison (v7.6):
+          // the last 6 months as bars, then this month against
+          // last month — both scoped to this budget.
+          MonthlyTrendChartCard(
+            store: store,
+            expenses: scopedExpenses,
+          ),
+          MonthComparisonCard(
+            store: store,
+            expenses: scopedExpenses,
+          ),
+        ],
       );
     }
 
