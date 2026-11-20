@@ -8,6 +8,7 @@ import '../../../core/localization.dart';
 import '../../../core/roman_urdu.dart';
 import '../../../core/notification_service.dart';
 import '../models/budget.dart';
+import '../models/category_cap.dart';
 import '../models/expense.dart';
 import '../models/recurring_rule.dart';
 import '../models/savings_goal.dart';
@@ -41,6 +42,8 @@ class ExpenseStore extends ChangeNotifier {
   // v7.4: recurring bills + savings goals.
   static const _recurringKey = 'cashwise_recurring_v1';
   static const _goalsKey = 'cashwise_goals_v1';
+  // v7.6: per-category monthly caps.
+  static const _categoryCapsKey = 'cashwise_category_caps_v1';
   // v7.4 (stretch): optional 4-digit PIN lock — only the
   // SHA-256 hash is stored, never the PIN itself.
   static const _pinKey = 'cashwise_pin_v1';
@@ -557,19 +560,97 @@ class ExpenseStore extends ChangeNotifier {
     return true;
   }
 
+  // --- Per-category monthly caps (v7.6) ---
+  // One cap per (budget, category): a monthly limit for that
+  // category inside that budget. No cap = unlimited. Caps
+  // are stored as their own list so old data (no caps) loads
+  // exactly as before.
+  final List<CategoryCap> _categoryCaps = [];
+
+  List<CategoryCap> get categoryCaps =>
+      List.unmodifiable(_categoryCaps);
+
+  /// This budget's cap for a category, or null (unlimited).
+  CategoryCap? capFor(String budgetId, String category) {
+    final matches = _categoryCaps.where(
+      (c) => c.budgetId == budgetId && c.category == category,
+    );
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  /// What one category cost in one budget THIS month
+  /// ([now] exists so tests can fix the month).
+  double categorySpentThisMonth(
+    String budgetId,
+    String category, {
+    DateTime? now,
+  }) {
+    final ref = now ?? DateTime.now();
+    return _expenses
+        .where((e) =>
+            e.budgetId == budgetId &&
+            e.category == category &&
+            e.date.year == ref.year &&
+            e.date.month == ref.month)
+        .fold(0.0, (sum, e) => sum + e.amountPkr);
+  }
+
+  /// True when this month's spend for the category is over
+  /// its cap (false when there is no cap).
+  bool isCategoryOverCap(
+    String budgetId,
+    String category, {
+    DateTime? now,
+  }) {
+    final cap = capFor(budgetId, category);
+    if (cap == null || cap.amount <= 0) return false;
+    return categorySpentThisMonth(budgetId, category, now: now) >
+        cap.amount;
+  }
+
+  /// Set (or replace) a cap. Amounts of 0 or less remove the
+  /// cap instead — a cap of 0 would block every expense.
+  Future<void> setCategoryCap(CategoryCap cap) async {
+    if (cap.amount <= 0) {
+      await removeCategoryCap(cap.budgetId, cap.category);
+      return;
+    }
+    final index = _categoryCaps.indexWhere(
+      (c) => c.budgetId == cap.budgetId && c.category == cap.category,
+    );
+    if (index < 0) {
+      _categoryCaps.add(cap);
+    } else {
+      _categoryCaps[index] = cap;
+    }
+    await _save();
+    notifyListeners();
+  }
+
+  Future<void> removeCategoryCap(
+    String budgetId,
+    String category,
+  ) async {
+    _categoryCaps.removeWhere(
+      (c) => c.budgetId == budgetId && c.category == category,
+    );
+    await _save();
+    notifyListeners();
+  }
+
   // --- Export / backup / import (v7.4) ---
   // One JSON file holds EVERYTHING (passwords are never
   // exported — the local account password stays on this
   // device). Import replaces the current data, only after
   // the user confirms in the UI.
 
-  /// The whole app as one JSON document (version 7 = v7.4
+  /// The whole app as one JSON document (version 8 = v7.6
   /// format: expenses, budgets, udhar, reminders, recurring
-  /// rules and savings goals).
+  /// rules, savings goals and category caps).
   String exportBackupJson() {
     final data = {
       'app': 'Hisaab Kitaab',
-      'version': 7,
+      'version': 8,
       'exportedAt': DateTime.now().toIso8601String(),
       'locale': _locale.code,
       'darkMode': _isDarkMode,
@@ -584,6 +665,8 @@ class ExpenseStore extends ChangeNotifier {
       'recurringRules':
           _recurringRules.map((r) => r.toJson()).toList(),
       'savingsGoals': _savingsGoals.map((g) => g.toJson()).toList(),
+      'categoryCaps':
+          _categoryCaps.map((c) => c.toJson()).toList(),
     };
     return jsonEncode(data);
   }
@@ -648,6 +731,11 @@ class ExpenseStore extends ChangeNotifier {
       final goals = (decoded['savingsGoals'] as List<dynamic>? ?? [])
           .map((e) => SavingsGoal.fromJson(e as Map<String, dynamic>))
           .toList();
+      // v7.6: older backups have no caps — they import as "no
+      // caps", exactly as they were saved.
+      final caps = (decoded['categoryCaps'] as List<dynamic>? ?? [])
+          .map((e) => CategoryCap.fromJson(e as Map<String, dynamic>))
+          .toList();
       final localeCode = decoded['locale'] as String?;
       final activeId = decoded['activeBudgetId'] as String?;
 
@@ -669,6 +757,9 @@ class ExpenseStore extends ChangeNotifier {
       _savingsGoals
         ..clear()
         ..addAll(goals);
+      _categoryCaps
+        ..clear()
+        ..addAll(caps);
       if (localeCode != null) _locale = localeByCode(localeCode);
       if (decoded['darkMode'] is bool) {
         _isDarkMode = decoded['darkMode'] as bool;
@@ -1504,6 +1595,14 @@ class ExpenseStore extends ChangeNotifier {
         ..addAll(decoded.map(
             (e) => SavingsGoal.fromJson(e as Map<String, dynamic>)));
     }
+    final rawCaps = prefs.getString(_categoryCapsKey);
+    if (rawCaps != null && rawCaps.isNotEmpty) {
+      final decoded = jsonDecode(rawCaps) as List<dynamic>;
+      _categoryCaps
+        ..clear()
+        ..addAll(decoded.map(
+            (e) => CategoryCap.fromJson(e as Map<String, dynamic>)));
+    }
     // Auto-post this month's due recurring bills (v7.4) —
     // once per cycle only, guarded by lastPostedMonth.
     if (postDueRecurring() > 0) {
@@ -1554,6 +1653,10 @@ class ExpenseStore extends ChangeNotifier {
     await prefs.setString(
       _goalsKey,
       jsonEncode(_savingsGoals.map((g) => g.toJson()).toList()),
+    );
+    await prefs.setString(
+      _categoryCapsKey,
+      jsonEncode(_categoryCaps.map((c) => c.toJson()).toList()),
     );
   }
 
