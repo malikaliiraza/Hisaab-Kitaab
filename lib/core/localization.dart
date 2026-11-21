@@ -326,6 +326,16 @@ class AppLocale {
   String get noSpendingLastMonth => _get('noSpendingLastMonth');
   String get biggestIncrease => _get('biggestIncrease');
   String get noIncrease => _get('noIncrease');
+  String get yearlyOverview => _get('yearlyOverview');
+  String get yearTotal => _get('yearTotal');
+  String get averagePerMonth => _get('averagePerMonth');
+  String get highestMonth => _get('highestMonth');
+  String get lowestMonth => _get('lowestMonth');
+  String get noSpendingThisYear => _get('noSpendingThisYear');
+  String monthsWithSpending(int n) =>
+      _get('monthsWithSpending').replaceAll('{n}', n.toString());
+  String get duplicate => _get('duplicate');
+  String get expenseDuplicated => _get('expenseDuplicated');
   String get monthlyCap => _get('monthlyCap');
   String get setCategoryCap => _get('setCategoryCap');
   String get editCategoryCap => _get('editCategoryCap');
@@ -491,15 +501,15 @@ const List<AppLocale> appLocales = [
       'aboutDescription':
           'Hisaab Kitaab is a personal finance companion built for everyday money in Pakistan. Set monthly budgets \u2014 one or several \u2014 track every expense by category, lend and borrow with due dates, times and partial payments in the Loan Ledger, and set your own reminders for any payment — the app only ever reminds you when you asked it to. A local cash-flow predictor shows when your budget will run out, before it happens. Everything works offline, in English or Urdu, with your data staying on your device.',
       'aboutFeatures':
-          '\u2022 Monthly budgets \u2014 named by you, each with its own screen, expenses and alerts\n\u2022 Expenses \u2014 categories, search, filters and a pie chart of where the money goes\n\u2022 Loan Ledger \u2014 Receivables and Payables, due dates and times, partial payments, full history\n\u2022 Reminders \u2014 only the ones you set yourself, for any payment or budget, always in the future — plus a Bin that keeps deleted items for 30 days\n\u2022 AI cash-flow predictor \u2014 daily average, projected month-end spend and run-out date\n\u2022 English and Urdu \u2014 full translation, Urdu script throughout, right-to-left layout\n\u2022 Light and dark themes, and a wallet welcome every time the app opens\n\u2022 Recurring expenses \u2014 monthly bills post themselves on the day you choose, once a month, never twice\n\u2022 Backup & Export \u2014 the whole app as one JSON backup, expenses as a CSV, and import to restore it\n\u2022 Savings goals \u2014 a target, a progress ring, and Add money that really moves the money out of your budget\n\u2022 Monthly report \u2014 this month\u2019s spending, top category, budget vs actual and loan movement, shareable as text\n\u2022 PIN lock \u2014 an optional 4-digit PIN on app start (only its hash is stored, never the PIN itself)\n\u2022 Continue with Google \u2014 sign in with your Google account, no password to remember\n\u2022 Works fully offline \u2014 no account, no server, no internet needed\n\u2022 Monthly spending trend \u2014 a bar chart of the last 6 months, and a month-over-month comparison\n\u2022 Per-category monthly caps \u2014 a monthly limit per category, with a warning when you pass it',
+          '\u2022 Monthly budgets \u2014 named by you, each with its own screen, expenses and alerts\n\u2022 Expenses \u2014 categories, search, filters and a pie chart of where the money goes\n\u2022 Loan Ledger \u2014 Receivables and Payables, due dates and times, partial payments, full history\n\u2022 Reminders \u2014 only the ones you set yourself, for any payment or budget, always in the future — plus a Bin that keeps deleted items for 30 days\n\u2022 AI cash-flow predictor \u2014 daily average, projected month-end spend and run-out date\n\u2022 English and Urdu \u2014 full translation, Urdu script throughout, right-to-left layout\n\u2022 Light and dark themes, and a wallet welcome every time the app opens\n\u2022 Recurring expenses \u2014 monthly bills post themselves on the day you choose, once a month, never twice\n\u2022 Backup & Export \u2014 the whole app as one JSON backup, expenses as a CSV, and import to restore it\n\u2022 Savings goals \u2014 a target, a progress ring, and Add money that really moves the money out of your budget\n\u2022 Monthly report \u2014 this month\u2019s spending, top category, budget vs actual and loan movement, shareable as text\n\u2022 PIN lock \u2014 an optional 4-digit PIN on app start (only its hash is stored, never the PIN itself)\n\u2022 Continue with Google \u2014 sign in with your Google account, no password to remember\n\u2022 Works fully offline \u2014 no account, no server, no internet needed\n\u2022 Monthly spending trend \u2014 a bar chart of the last 6 months, and a month-over-month comparison\n\u2022 Per-category monthly caps \u2014 a monthly limit per category, with a warning when you pass it\n\u2022 Yearly overview \u2014 this year at a glance: total, average per active month, highest and lowest months\n\u2022 Duplicate expense \u2014 copy any expense as a new one dated today',
       'aboutDeveloperTitle': 'About the developer',
       'aboutDeveloper':
           'Hisaab Kitaab is built by Malik Ali Raza — a Flutter & Web Developer and Software Engineering student at Riphah International University, Sahiwal. He builds real apps people actually use, with clean architecture, and is open to internships and freelance work.',
       'aboutPrivacy':
           'Privacy: your budgets, expenses and loans are stored only on this device. Hisaab Kitaab never uploads your financial data anywhere.',
-      'whatsNew': "What's new in v7.6",
+      'whatsNew': "What's new in v7.7",
       'whatsNewText':
-          '• Monthly spending trend — a bar chart of the last 6 months on the Summary page\n• Month-over-month comparison — this month vs last month, with the category that rose the most\n• Per-category monthly caps — set a monthly limit per category and get a warning when you pass it\n• Savings goals can now be edited — change the target or deadline anytime',
+          '• Yearly overview — this year at a glance: total, average per active month, and the highest and lowest months\n• Duplicate expense — copy any expense as a new one dated today, for the purchases that repeat',
       'paymentTime': 'Payment time',
       'history': 'History',
       'editBudget': 'Edit budget',
@@ -636,6 +646,15 @@ const List<AppLocale> appLocales = [
       'noSpendingLastMonth': 'No spending last month',
       'biggestIncrease': 'Biggest increase',
       'noIncrease': 'No category increased this month',
+      'yearlyOverview': 'This year at a glance',
+      'yearTotal': 'Total this year',
+      'averagePerMonth': 'Average per active month',
+      'highestMonth': 'Highest month',
+      'lowestMonth': 'Lowest month',
+      'noSpendingThisYear': 'No spending recorded this year yet.',
+      'monthsWithSpending': 'Spending in {n} of 12 months',
+      'duplicate': 'Duplicate',
+      'expenseDuplicated': 'Expense duplicated for today.',
       'monthlyCap': 'Monthly cap',
       'setCategoryCap': 'Set monthly cap',
       'editCategoryCap': 'Edit monthly cap',
@@ -806,15 +825,15 @@ const List<AppLocale> appLocales = [
       'aboutDescription':
           'حساب کتاب پاکستان میں روزمرہ کے پیسوں کے لیے بنایا گیا ذاتی مالی ساتھی ہے۔ ایک یا کئی ماہانہ بجٹ بنائیں، ہر خرچ کو زمرے کے حساب سے ٹریک کریں، ادھار کھاتے میں مقررہ تاریخ، وقت اور جزوی ادائیگیوں کے ساتھ پیسے دیں اور لیں، اور کسی بھی ادائیگی کے لیے اپنی یاد دہانی لگائیں — ایپ صرف تب یاد دلائے گی جب آپ نے کہا ہو۔ مقامی کیش فلو پیش گوئی بتاتی ہے کہ بجٹ کب ختم ہوگا — ختم ہونے سے پہلے۔ سب کچھ آف لائن کام کرتا ہے، انگریزی یا اردو میں، اور آپ کا ڈیٹا آپ کے آلے پر ہی رہتا ہے۔',
       'aboutFeatures':
-          '• ماہانہ بجٹ — اپنے نام والے کئی بجٹ، ہر ایک کی اپنی اسکرین، خرچے اور الرٹس\n• خرچے — زمرے، تلاش، فلٹر اور پائی چارٹ جس سے پتا چلے پیسہ کہاں گیا\n• ادھار کھاتہ — وصولیاں اور ادائیگیاں، مقررہ تاریخ و وقت، جزوی ادائیگیاں، مکمل تاریخ\n• یاد دہانیاں — صرف آپ کی لگائی ہوئی یاد دہانیاں، کسی بھی ادائیگی یا بجٹ کے لیے، ہمیشہ مستقبل میں — اور بن جو حذف شدہ اشیاء 30 دن رکھتا ہے\n• اے آئی کیش فلو پیش گوئی — روزانہ اوسط، مہینے کے آخر کا تخمینہ اور بجٹ ختم ہونے کی تاریخ\n• انگریزی اور اردو — مکمل ترجمہ، ہر جگہ اردو رسم الخط، دائیں سے بائیں ترتیب\n• ہلکا اور گہرا تھیم، اور ہر بار ایپ کھلنے پر والٹ خوش آمدید\n• بار بار آنے والے خرچے — ماہانہ بل آپ کی منتخب تاریخ پر خود بخود شامل ہو جاتے ہیں، مہینے میں ایک بار، کبھی دو بار نہیں\n• بیک اپ اور ایکسپورٹ — پوری ایپ ایک JSON بیک اپ میں، خرچے CSV میں، اور بحالی کے لیے بیک اپ درآمد کریں\n• بچت کے اہداف — ہدف، پیش رفت کا دائرہ، اور رقم شامل کرنا جو پیسے کو واقعی آپ کے بجٹ سے نکال دیتا ہے\n• ماہانہ رپورٹ — اس مہینے کا خرچ، سب سے زیادہ خرچ، بجٹ بمقابلہ اصل خرچ اور ادھار کی نقل و حرکت، متن کے طور پر شیئر کریں\n• پن لاک — ایپ کھلنے پر اختیاری 4 ہندسوں کا پن (صرف اس کا ہیش محفوظ ہوتا ہے، پن خود کبھی نہیں)\n• گوگل سے سائن ان — اپنے گوگل اکاؤنٹ سے سائن ان کریں، پاس ورڈ یاد رکھنے کی ضرورت نہیں\n• مکمل طور پر آف لائن — نہ اکاؤنٹ، نہ سرور، نہ انٹرنیٹ کی ضرورت\n• ماہانہ خرچ کا رجحان — پچھلے 6 مہینوں کا بار چارٹ اور مہینے کا موازنہ\n• فی زمرہ ماہانہ حد — ہر زمرے کے لیے ماہانہ حد، حد پار کرنے پر انتباہ کے ساتھ',
+          '• ماہانہ بجٹ — اپنے نام والے کئی بجٹ، ہر ایک کی اپنی اسکرین، خرچے اور الرٹس\n• خرچے — زمرے، تلاش، فلٹر اور پائی چارٹ جس سے پتا چلے پیسہ کہاں گیا\n• ادھار کھاتہ — وصولیاں اور ادائیگیاں، مقررہ تاریخ و وقت، جزوی ادائیگیاں، مکمل تاریخ\n• یاد دہانیاں — صرف آپ کی لگائی ہوئی یاد دہانیاں، کسی بھی ادائیگی یا بجٹ کے لیے، ہمیشہ مستقبل میں — اور بن جو حذف شدہ اشیاء 30 دن رکھتا ہے\n• اے آئی کیش فلو پیش گوئی — روزانہ اوسط، مہینے کے آخر کا تخمینہ اور بجٹ ختم ہونے کی تاریخ\n• انگریزی اور اردو — مکمل ترجمہ، ہر جگہ اردو رسم الخط، دائیں سے بائیں ترتیب\n• ہلکا اور گہرا تھیم، اور ہر بار ایپ کھلنے پر والٹ خوش آمدید\n• بار بار آنے والے خرچے — ماہانہ بل آپ کی منتخب تاریخ پر خود بخود شامل ہو جاتے ہیں، مہینے میں ایک بار، کبھی دو بار نہیں\n• بیک اپ اور ایکسپورٹ — پوری ایپ ایک JSON بیک اپ میں، خرچے CSV میں، اور بحالی کے لیے بیک اپ درآمد کریں\n• بچت کے اہداف — ہدف، پیش رفت کا دائرہ، اور رقم شامل کرنا جو پیسے کو واقعی آپ کے بجٹ سے نکال دیتا ہے\n• ماہانہ رپورٹ — اس مہینے کا خرچ، سب سے زیادہ خرچ، بجٹ بمقابلہ اصل خرچ اور ادھار کی نقل و حرکت، متن کے طور پر شیئر کریں\n• پن لاک — ایپ کھلنے پر اختیاری 4 ہندسوں کا پن (صرف اس کا ہیش محفوظ ہوتا ہے، پن خود کبھی نہیں)\n• گوگل سے سائن ان — اپنے گوگل اکاؤنٹ سے سائن ان کریں، پاس ورڈ یاد رکھنے کی ضرورت نہیں\n• مکمل طور پر آف لائن — نہ اکاؤنٹ، نہ سرور، نہ انٹرنیٹ کی ضرورت\n• ماہانہ خرچ کا رجحان — پچھلے 6 مہینوں کا بار چارٹ اور مہینے کا موازنہ\n• فی زمرہ ماہانہ حد — ہر زمرے کے لیے ماہانہ حد، حد پار کرنے پر انتباہ کے ساتھ\\n• سال کا جائزہ — اس سال ایک نظر میں: کل خرچ، اوسط فی مہینہ، سب سے زیادہ اور سب سے کم خرچ والے مہینے\\n• خرچہ نقل کریں — کسی بھی خرچے کو آج کی تاریخ کے ساتھ دوبارہ شامل کریں',
       'aboutDeveloperTitle': 'ڈویلپر کے بارے میں',
       'aboutDeveloper':
           'حساب کتاب ملک علی رضا نے بنائی ہے — ایک Flutter اور Web Developer اور Riphah International University, Sahiwal میں Software Engineering کے طالب علم۔ وہ صاف architecture کے ساتھ حقیقی ایپس بناتے ہیں جو لوگ واقعی استعمال کرتے ہیں، اور انٹرنشپ اور فری لانس کام کے لیے دستیاب ہیں۔',
       'aboutPrivacy':
           'رازداری: آپ کے بجٹ، خرچے اور قرض صرف اس آلے پر محفوظ ہوتے ہیں۔ حساب کتاب آپ کا مالی ڈیٹا کہیں بھی نہیں بھیجتا۔',
-      'whatsNew': 'v7.6 میں نیا کیا ہے',
+      'whatsNew': 'v7.7 میں نیا کیا ہے',
       'whatsNewText':
-          '• ماہانہ خرچ کا رجحان — خلاصہ صفحے پر پچھلے 6 مہینوں کا بار چارٹ\n• مہینے کا موازنہ — اس مہینے بمقابلہ پچھلا مہینہ، اور وہ زمرہ جس میں سب سے زیادہ اضافہ ہوا\n• فی زمرہ ماہانہ حد — ہر زمرے کے لیے ماہانہ حد مقرر کریں، اور حد پار کرنے پر انتباہ پائیں\n• بچت کے اہداف اب تبدیل کیے جا سکتے ہیں — ہدف یا آخری تاریخ کسی بھی وقت بدلیں',
+          '• سال کا جائزہ — اس سال ایک نظر میں: کل خرچ، اوسط فی مہینہ، اور سب سے زیادہ اور سب سے کم خرچ والے مہینے\n• خرچہ نقل کریں — کسی بھی خرچے کو آج کی تاریخ کے ساتھ دوبارہ شامل کریں، بار بار ہونے والے خرچوں کے لیے',
       'paymentTime': 'ادائیگی کا وقت',
       'history': 'تاریخ',
       'editBudget': 'بجٹ بدلیں',
@@ -950,6 +969,15 @@ const List<AppLocale> appLocales = [
       'noSpendingLastMonth': 'پچھلے مہینے کوئی خرچ نہیں تھا',
       'biggestIncrease': 'سب سے زیادہ اضافہ',
       'noIncrease': 'اس مہینے کسی زمرے میں اضافہ نہیں ہوا',
+      'yearlyOverview': 'اس سال ایک نظر میں',
+      'yearTotal': 'اس سال کل خرچ',
+      'averagePerMonth': 'اوسط فی مہینہ (خرچ والے مہینے)',
+      'highestMonth': 'سب سے زیادہ خرچ والا مہینہ',
+      'lowestMonth': 'سب سے کم خرچ والا مہینہ',
+      'noSpendingThisYear': 'اس سال ابھی کوئی خرچ درج نہیں ہوا۔',
+      'monthsWithSpending': '12 میں سے {n} مہینوں میں خرچ ہوا',
+      'duplicate': 'نقل بنائیں',
+      'expenseDuplicated': 'خرچہ آج کی تاریخ کے ساتھ دوبارہ شامل کر دیا گیا۔',
       'monthlyCap': 'ماہانہ حد',
       'setCategoryCap': 'ماہانہ حد مقرر کریں',
       'editCategoryCap': 'ماہانہ حد تبدیل کریں',
