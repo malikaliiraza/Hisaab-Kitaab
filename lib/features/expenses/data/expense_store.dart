@@ -1682,6 +1682,31 @@ class ExpenseStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Copy an expense as a new one dated today (v7.7) — the
+  /// "Duplicate" action on the expense detail screen. Same
+  /// title, amount and category, a fresh id, today's date, the
+  /// active budget's book. Returns the new expense, or null
+  /// when there is no budget to add it to. [now] exists so
+  /// tests can fix the date; the screen always passes "now".
+  Future<Expense?> duplicateExpense(
+    Expense expense, {
+    DateTime? now,
+  }) async {
+    if (!hasBudget) return null;
+    final copy = Expense(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: expense.title,
+      amountPkr: expense.amountPkr,
+      category: expense.category,
+      date: now ?? DateTime.now(),
+      budgetId: _activeBudgetId,
+    );
+    _expenses.insert(0, copy);
+    await _save();
+    notifyListeners();
+    return copy;
+  }
+
   /// Replace an existing expense (same id, keeps its original date).
   /// Used by the edit-expense sheet; does nothing if the id is gone.
   Future<void> updateExpense(Expense expense) async {
