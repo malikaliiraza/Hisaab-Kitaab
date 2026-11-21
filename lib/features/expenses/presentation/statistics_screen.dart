@@ -31,6 +31,7 @@ import 'expense_detail_screen.dart';
 import 'month_comparison_card.dart';
 import 'monthly_report_screen.dart';
 import 'monthly_trend_chart.dart';
+import 'yearly_overview_card.dart';
 
 class StatisticsScreen extends StatefulWidget {
   /// Which tab to open on: 0 = Expenses, 1 = AI Predictor,
@@ -525,6 +526,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             expenses: scopedExpenses,
           ),
           MonthComparisonCard(
+            store: store,
+            expenses: scopedExpenses,
+          ),
+          // Yearly overview (v7.7): this calendar year at a
+          // glance — total, average, highest and lowest months.
+          YearlyOverviewCard(
             store: store,
             expenses: scopedExpenses,
           ),

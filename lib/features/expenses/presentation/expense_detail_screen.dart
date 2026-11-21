@@ -1,8 +1,10 @@
-// CashWise AI — expense detail page (v4.5).
+// CashWise AI — expense detail page (v4.5, duplicate v7.7).
 //
 // Tapping an expense in the list opens this page instead of editing
-// inline: title, amount, category and date, with Edit and Delete.
-// Edit opens the same prefilled form on this page; Delete asks first.
+// inline: title, amount, category and date, with Edit, Duplicate
+// and Delete. Edit opens the same prefilled form on this page;
+// Duplicate copies the expense as a new one dated today;
+// Delete asks first.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -71,8 +73,22 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     if (mounted) setState(() => _editing = false);
   }
 
-  Future<void> _confirmDelete() async {
+  /// Duplicate this expense as a new one dated today (v7.7):
+  /// the same title, amount and category, for the regular
+  /// purchases that repeat. Confirms with a SnackBar, then
+  /// goes back to the list where the copy sits on top.
+  Future<void> _duplicate() async {
     final store = context.read<ExpenseStore>();
+    final strings = store.strings;
+    final copy = await store.duplicateExpense(widget.expense);
+    if (!mounted || copy == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(strings.expenseDuplicated)),
+    );
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _confirmDelete() async {    final store = context.read<ExpenseStore>();
     final strings = store.strings;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -264,7 +280,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                   // v7.2: balanced row — the standard 48dp
                   // GradientButton (normal 16px bold label, never
                   // oversized) beside a proper-size bin: 22dp
-                  // icon on a 40dp tap target.
+                  // icon on a 40dp tap target. v7.7 adds a
+                  // Duplicate icon between Edit and Delete.
                   Row(
                     children: [
                       Expanded(
@@ -273,6 +290,13 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                           onPressed: () =>
                               setState(() => _editing = true),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        iconSize: 22,
+                        tooltip: strings.duplicate,
+                        onPressed: _duplicate,
+                        icon: const Icon(Icons.copy_all_outlined),
                       ),
                       const SizedBox(width: 8),
                       DeleteIconButton(
