@@ -13,9 +13,12 @@ import 'package:provider/provider.dart';
 
 import '../../../core/amount_row.dart';
 import '../../../core/page_transitions.dart';
+import '../../../core/share_file.dart';
 import '../../../core/theme.dart';
+import '../data/expense_search.dart';
 import '../data/expense_store.dart';
 import '../models/budget.dart';
+import '../models/expense.dart';
 import 'add_expense_screen.dart';
 import 'budget_screen.dart';
 import 'category_cap_sheet.dart';
@@ -33,10 +36,45 @@ String shortDate(ExpenseStore store, DateTime date) {
   return '${date.day} ${months[date.month - 1]} ${date.year}';
 }
 
-class BudgetDetailScreen extends StatelessWidget {
+class BudgetDetailScreen extends StatefulWidget {
   final BudgetPeriod budget;
 
   const BudgetDetailScreen({super.key, required this.budget});
+
+  @override
+  State<BudgetDetailScreen> createState() => _BudgetDetailScreenState();
+}
+
+/// One budget's own home page (v7.2). Search, filter and
+/// sort for its expense list arrived in v7.8, so the screen
+/// is stateful — the rest of the page is unchanged.
+class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+  String? _filterCategory;
+  ExpenseSort _sort = ExpenseSort.newest;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Share just the filtered list as a CSV (v7.8) — the
+  /// same share helper the Backup screen uses.
+  Future<void> _shareFiltered(
+    ExpenseStore store,
+    List<Expense> filtered,
+  ) async {
+    final now = DateTime.now();
+    final name =
+        'hisaab-kitaab-filtered-${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}.csv';
+    await shareTextFile(
+      fileName: name,
+      content: store.exportExpensesCsvFor(filtered),
+      mimeType: 'text/csv',
+    );
+  }
 
   static Color _secondary(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
@@ -46,7 +84,7 @@ class BudgetDetailScreen extends StatelessWidget {
   Future<void> _rename(BuildContext context, ExpenseStore store) async {
     final strings = store.strings;
     final controller =
-        TextEditingController(text: store.budgetDisplayName(budget));
+        TextEditingController(text: store.budgetDisplayName(widget.budget));
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -72,7 +110,7 @@ class BudgetDetailScreen extends StatelessWidget {
       ),
     );
     if (saved == true && controller.text.trim().isNotEmpty) {
-      await store.renameBudget(budget.id, controller.text);
+      await store.renameBudget(widget.budget.id, controller.text);
     }
   }
 
@@ -186,8 +224,8 @@ class BudgetDetailScreen extends StatelessWidget {
     // Re-read the budget from the store, so a rename shows
     // immediately without leaving the screen.
     final b = store.budgets.firstWhere(
-      (x) => x.id == budget.id,
-      orElse: () => budget,
+      (x) => x.id == widget.budget.id,
+      orElse: () => widget.budget,
     );
     final name = store.budgetDisplayName(b);
     final spent = store.budgetSpent(b);
@@ -196,6 +234,25 @@ class BudgetDetailScreen extends StatelessWidget {
         b.amount <= 0 ? 0.0 : (spent / b.amount).clamp(0.0, 1.0);
     final expenses = store.expensesForBudget(b.id);
     final isActive = b.id == store.activeBudgetId;
+
+    // Search, filter and sort for this budget's own list
+    // (v7.8) — the pure-Dart helpers in expense_search.dart.
+    final filtered = sortExpenses(
+      filterExpenses(
+        expenses,
+        query: _query,
+        category: _filterCategory,
+      ),
+      _sort,
+    );
+    final filterActive = _query.trim().isNotEmpty ||
+        _filterCategory != null ||
+        _sort != ExpenseSort.newest;
+    // Only the categories this budget actually has get a
+    // chip, in the usual category order.
+    final presentCategories = expenseCategories
+        .where((c) => expenses.any((e) => e.category == c))
+        .toList();
 
     // Category totals for this budget only.
     final Map<String, double> byCategory = {};
@@ -547,14 +604,125 @@ class BudgetDetailScreen extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(height: 20),
-                  Text(
-                    strings.expenses,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          strings.expenses,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      // Share just the filtered list (v7.8):
+                      // only when a filter is active and there
+                      // is something to share.
+                      if (filterActive && filtered.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.share, size: 20),
+                          tooltip: strings.shareFilteredList,
+                          onPressed: () =>
+                              _shareFiltered(store, filtered),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
+                  // Search, sort and category filter (v7.8) —
+                  // the same controls as the Details page's
+                  // Expenses tab, for this budget's own list.
+                  if (expenses.isNotEmpty) ...[
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: strings.searchHint,
+                        prefixIcon:
+                            const Icon(Icons.search, size: 20),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                icon:
+                                    const Icon(Icons.clear, size: 20),
+                                tooltip: strings.searchExpenses,
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _query = '');
+                                },
+                              ),
+                      ),
+                      onChanged: (value) =>
+                          setState(() => _query = value),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          strings.sortBy,
+                          style: TextStyle(color: _secondary(context)),
+                        ),
+                        const SizedBox(width: 8),
+                        DropdownButton<ExpenseSort>(
+                          value: _sort,
+                          underline: const SizedBox.shrink(),
+                          items: [
+                            DropdownMenuItem(
+                              value: ExpenseSort.newest,
+                              child: Text(strings.newestFirst),
+                            ),
+                            DropdownMenuItem(
+                              value: ExpenseSort.oldest,
+                              child: Text(strings.oldestFirst),
+                            ),
+                            DropdownMenuItem(
+                              value: ExpenseSort.amountHighToLow,
+                              child: Text(strings.highestAmount),
+                            ),
+                            DropdownMenuItem(
+                              value: ExpenseSort.amountLowToHigh,
+                              child: Text(strings.lowestAmount),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _sort = value);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        ChoiceChip(
+                          label: Text(strings.allCategories),
+                          selected: _filterCategory == null,
+                          onSelected: (_) =>
+                              setState(() => _filterCategory = null),
+                        ),
+                        ...presentCategories.map(
+                          (c) => ChoiceChip(
+                            label: Text(strings.categoryName(c)),
+                            selected: _filterCategory == c,
+                            onSelected: (_) =>
+                                setState(() => _filterCategory = c),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (filterActive) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        strings.showingExpenses(
+                          filtered.length,
+                          expenses.length,
+                        ),
+                        style: TextStyle(color: _secondary(context)),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                  ],
                   if (expenses.isEmpty)
                     Text(
                       strings.noExpenses,
@@ -562,8 +730,15 @@ class BudgetDetailScreen extends StatelessWidget {
                         color: _secondary(context),
                       ),
                     )
+                  else if (filtered.isEmpty)
+                    Text(
+                      strings.noMatchingExpenses,
+                      style: TextStyle(
+                        color: _secondary(context),
+                      ),
+                    )
                   else
-                    ...expenses.map(
+                    ...filtered.map(
                       (e) => Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
