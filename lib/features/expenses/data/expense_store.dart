@@ -683,11 +683,17 @@ class ExpenseStore extends ChangeNotifier {
   /// Every expense as one CSV file: Date, Title, Category,
   /// Budget, Amount. Dates are ISO (yyyy-MM-dd) so any
   /// spreadsheet opens the file cleanly.
-  String exportExpensesCsv() {
+  String exportExpensesCsv() => exportExpensesCsvFor(_expenses);
+
+  /// The same CSV, but only for [expenses] (v7.8) — so a
+  /// filtered list (search / category / sort) can be shared
+  /// on its own. The header and field quoting are identical
+  /// to [exportExpensesCsv].
+  String exportExpensesCsvFor(List<Expense> expenses) {
     final lines = <String>[
       'Date,Title,Category,Budget,Amount (Rs.)',
     ];
-    for (final e in _expenses) {
+    for (final e in expenses) {
       final budget = _budgets
           .where((b) => b.id == e.budgetId)
           .firstOrNull;
