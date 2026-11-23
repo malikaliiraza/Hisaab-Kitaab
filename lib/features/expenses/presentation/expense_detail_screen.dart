@@ -226,7 +226,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                             decoration: InputDecoration(
                               labelText: strings.category,
                             ),
-                            items: expenseCategories
+                            items: store.allCategories
                                 .map(
                                   (c) => DropdownMenuItem(
                                     value: c,
