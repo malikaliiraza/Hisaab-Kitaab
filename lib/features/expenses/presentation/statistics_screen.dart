@@ -21,7 +21,6 @@ import '../../../core/gradient_button.dart';
 import '../../../core/page_transitions.dart';
 import '../../../core/theme.dart';
 import '../data/expense_store.dart';
-import '../models/expense.dart';
 import 'add_expense_screen.dart';
 import 'budget_detail_screen.dart' show shortDate;
 import 'cashflow_predictor.dart';
@@ -288,7 +287,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     onSelected: (_) =>
                         setState(() => _filterCategory = null),
                   ),
-                  ...expenseCategories.map(
+                  ...store.allCategories.map(
                     (c) => ChoiceChip(
                       label: Text(strings.categoryName(c)),
                       selected: _filterCategory == c,
