@@ -13,6 +13,7 @@ import '../data/expense_store.dart';
 import '../models/expense.dart';
 import 'budget_detail_screen.dart' show shortDate;
 import 'budget_screen.dart';
+import 'manage_categories_sheet.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   /// Optional: add the expense to this budget (v7.2). Null =
@@ -227,7 +228,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: expenseCategories
+                    children: store.allCategories
                         .map(
                           (c) => ChoiceChip(
                             label: Text(strings.categoryName(c)),
@@ -237,6 +238,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                         )
                         .toList(),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        await showManageCategoriesSheet(context);
+                        // A category picked here may have been
+                        // renamed or deleted in the sheet — fall
+                        // back to the first category if it is
+                        // gone, so the next save stays valid.
+                        if (mounted &&
+                            !store.allCategories.contains(_category)) {
+                          setState(
+                              () => _category = expenseCategories.first);
+                        }
+                      },
+                      icon: const Icon(Icons.category_outlined, size: 18),
+                      label: Text(strings.manageCategories),
+                    ),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 16),
