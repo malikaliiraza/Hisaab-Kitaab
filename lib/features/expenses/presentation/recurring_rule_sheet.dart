@@ -175,7 +175,7 @@ class _RecurringRuleSheetState extends State<_RecurringRuleSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: expenseCategories
+              children: store.allCategories
                   .map(
                     (c) => ChoiceChip(
                       label: Text(strings.categoryName(c)),
