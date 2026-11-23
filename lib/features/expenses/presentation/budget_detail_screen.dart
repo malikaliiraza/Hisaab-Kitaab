@@ -249,8 +249,9 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
         _filterCategory != null ||
         _sort != ExpenseSort.newest;
     // Only the categories this budget actually has get a
-    // chip, in the usual category order.
-    final presentCategories = expenseCategories
+    // chip, in the usual category order — custom categories
+    // included (v7.9).
+    final presentCategories = store.allCategories
         .where((c) => expenses.any((e) => e.category == c))
         .toList();
 
