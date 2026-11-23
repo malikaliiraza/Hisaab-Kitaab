@@ -44,6 +44,8 @@ class ExpenseStore extends ChangeNotifier {
   static const _goalsKey = 'cashwise_goals_v1';
   // v7.6: per-category monthly caps.
   static const _categoryCapsKey = 'cashwise_category_caps_v1';
+  // v7.9: the user's own expense categories.
+  static const _customCategoriesKey = 'cashwise_custom_categories_v1';
   // v7.4 (stretch): optional 4-digit PIN lock — only the
   // SHA-256 hash is stored, never the PIN itself.
   static const _pinKey = 'cashwise_pin_v1';
@@ -638,19 +640,124 @@ class ExpenseStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Custom expense categories (v7.9) ---
+  // The user's own categories, on top of the built-ins in
+  // expenseCategories: "Gym", "Petrol", "School fees" — any
+  // name the user types. Stored as plain strings, so they
+  // display as-is in every locale (categoryName falls back
+  // to the key itself when untranslated). A custom category
+  // can be renamed (expenses, recurring rules and caps using
+  // it are renamed too) and deleted — but only while nothing
+  // uses it any more.
+  final List<String> _customCategories = [];
+
+  List<String> get customCategories =>
+      List.unmodifiable(_customCategories);
+
+  /// Built-ins first, then the user's own, in the order they
+  /// were added — the list every category picker shows.
+  List<String> get allCategories =>
+      [...expenseCategories, ..._customCategories];
+
+  bool _customNameTaken(String name) {
+    final lower = name.toLowerCase();
+    return expenseCategories.any((c) => c.toLowerCase() == lower) ||
+        _customCategories.any((c) => c.toLowerCase() == lower);
+  }
+
+  /// Add a custom category. Returns false when the name is
+  /// empty, or collides (case-insensitive) with a built-in
+  /// category or one already added.
+  Future<bool> addCustomCategory(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || _customNameTaken(trimmed)) return false;
+    _customCategories.add(trimmed);
+    await _save();
+    notifyListeners();
+    return true;
+  }
+
+  /// Rename a custom category — and every expense, recurring
+  /// rule and cap using the old name, so nothing is left
+  /// pointing at a name that no longer exists. Returns false
+  /// when the old name is not a custom category, or the new
+  /// name is empty or collides with another category.
+  Future<bool> renameCustomCategory(
+    String oldName,
+    String newName,
+  ) async {
+    final index = _customCategories.indexWhere((c) => c == oldName);
+    if (index < 0) return false;
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.toLowerCase() != oldName.toLowerCase() &&
+        _customNameTaken(trimmed)) {
+      return false;
+    }
+    _customCategories[index] = trimmed;
+    for (var i = 0; i < _expenses.length; i++) {
+      if (_expenses[i].category == oldName) {
+        final e = _expenses[i];
+        _expenses[i] = Expense(
+          id: e.id,
+          title: e.title,
+          amountPkr: e.amountPkr,
+          category: trimmed,
+          date: e.date,
+          budgetId: e.budgetId,
+        );
+      }
+    }
+    for (var i = 0; i < _recurringRules.length; i++) {
+      if (_recurringRules[i].category == oldName) {
+        _recurringRules[i] =
+            _recurringRules[i].copyWith(category: trimmed);
+      }
+    }
+    for (var i = 0; i < _categoryCaps.length; i++) {
+      if (_categoryCaps[i].category == oldName) {
+        final c = _categoryCaps[i];
+        _categoryCaps[i] = CategoryCap(
+          category: trimmed,
+          amount: c.amount,
+          budgetId: c.budgetId,
+        );
+      }
+    }
+    await _save();
+    notifyListeners();
+    return true;
+  }
+
+  /// Delete a custom category. Refuses (false) while any
+  /// expense or recurring rule still uses it — delete or
+  /// re-categorise those first. Caps for the category are
+  /// dropped with it.
+  Future<bool> deleteCustomCategory(String name) async {
+    if (!_customCategories.contains(name)) return false;
+    if (_expenses.any((e) => e.category == name)) return false;
+    if (_recurringRules.any((r) => r.category == name)) return false;
+    _customCategories.remove(name);
+    _categoryCaps.removeWhere((c) => c.category == name);
+    await _save();
+    notifyListeners();
+    return true;
+  }
+
   // --- Export / backup / import (v7.4) ---
   // One JSON file holds EVERYTHING (passwords are never
   // exported — the local account password stays on this
   // device). Import replaces the current data, only after
   // the user confirms in the UI.
 
-  /// The whole app as one JSON document (version 8 = v7.6
+  /// The whole app as one JSON document (version 9 = v7.9
   /// format: expenses, budgets, udhar, reminders, recurring
-  /// rules, savings goals and category caps).
+  /// rules, savings goals, category caps and custom
+  /// categories).
   String exportBackupJson() {
     final data = {
       'app': 'Hisaab Kitaab',
-      'version': 8,
+      'version': 9,
       'exportedAt': DateTime.now().toIso8601String(),
       'locale': _locale.code,
       'darkMode': _isDarkMode,
@@ -667,6 +774,7 @@ class ExpenseStore extends ChangeNotifier {
       'savingsGoals': _savingsGoals.map((g) => g.toJson()).toList(),
       'categoryCaps':
           _categoryCaps.map((c) => c.toJson()).toList(),
+      'customCategories': _customCategories,
     };
     return jsonEncode(data);
   }
@@ -742,6 +850,12 @@ class ExpenseStore extends ChangeNotifier {
       final caps = (decoded['categoryCaps'] as List<dynamic>? ?? [])
           .map((e) => CategoryCap.fromJson(e as Map<String, dynamic>))
           .toList();
+      // v7.9: older backups have no custom categories — they
+      // import as "no custom categories", exactly as saved.
+      final customCategories =
+          (decoded['customCategories'] as List<dynamic>? ?? [])
+              .map((e) => e as String)
+              .toList();
       final localeCode = decoded['locale'] as String?;
       final activeId = decoded['activeBudgetId'] as String?;
 
@@ -766,6 +880,9 @@ class ExpenseStore extends ChangeNotifier {
       _categoryCaps
         ..clear()
         ..addAll(caps);
+      _customCategories
+        ..clear()
+        ..addAll(customCategories);
       if (localeCode != null) _locale = localeByCode(localeCode);
       if (decoded['darkMode'] is bool) {
         _isDarkMode = decoded['darkMode'] as bool;
@@ -1609,6 +1726,11 @@ class ExpenseStore extends ChangeNotifier {
         ..addAll(decoded.map(
             (e) => CategoryCap.fromJson(e as Map<String, dynamic>)));
     }
+    // v7.9: the user's own categories — an empty list when
+    // none were added yet.
+    _customCategories
+      ..clear()
+      ..addAll(prefs.getStringList(_customCategoriesKey) ?? []);
     // Auto-post this month's due recurring bills (v7.4) —
     // once per cycle only, guarded by lastPostedMonth.
     if (postDueRecurring() > 0) {
@@ -1664,6 +1786,8 @@ class ExpenseStore extends ChangeNotifier {
       _categoryCapsKey,
       jsonEncode(_categoryCaps.map((c) => c.toJson()).toList()),
     );
+    await prefs.setStringList(
+        _customCategoriesKey, _customCategories);
   }
 
   /// True once a monthly budget is set. Adding an expense without
