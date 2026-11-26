@@ -443,7 +443,8 @@ class ExpenseStore extends ChangeNotifier {
   /// Post every rule whose day has come this month and which
   /// has not posted for this month yet. Returns how many
   /// expenses were posted. [now] exists so tests can fix the
-  /// date; the app always passes "now".
+  /// date; the app always passes "now". Paused rules (v7.10)
+  /// never post and keep their lastPostedMonth untouched.
   int postDueRecurring({DateTime? now}) {
     final today = now ?? DateTime.now();
     final month = _monthKey(today);
@@ -455,6 +456,7 @@ class ExpenseStore extends ChangeNotifier {
     }
     for (var i = 0; i < _recurringRules.length; i++) {
       final rule = _recurringRules[i];
+      if (rule.paused) continue;
       if (rule.lastPostedMonth == month) continue;
       final day =
           rule.dayOfMonth.clamp(1, _daysInMonthOf(today.year, today.month));
@@ -480,6 +482,26 @@ class ExpenseStore extends ChangeNotifier {
     }
     _recurringPostedToday = posted;
     return posted;
+  }
+
+  /// The next date a rule will post (v7.10), or null when it
+  /// is paused: this month's clamped day when that day has
+  /// not passed yet and the rule has not posted this month,
+  /// otherwise next month's clamped day. [now] exists so
+  /// tests can fix the date; the app always passes "now".
+  DateTime? nextPostDateFor(RecurringRule rule, {DateTime? now}) {
+    if (rule.paused) return null;
+    final today = now ?? DateTime.now();
+    final thisMonthDay = rule.dayOfMonth
+        .clamp(1, _daysInMonthOf(today.year, today.month));
+    if (today.day <= thisMonthDay &&
+        rule.lastPostedMonth != _monthKey(today)) {
+      return DateTime(today.year, today.month, thisMonthDay);
+    }
+    final next = DateTime(today.year, today.month + 1, 1);
+    final nextMonthDay =
+        rule.dayOfMonth.clamp(1, _daysInMonthOf(next.year, next.month));
+    return DateTime(next.year, next.month, nextMonthDay);
   }
 
   Future<void> addRecurringRule(RecurringRule rule) async {
