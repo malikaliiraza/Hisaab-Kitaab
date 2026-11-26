@@ -1,4 +1,4 @@
-// Hisaab Kitaab — recurring expense / bill rule (v7.4).
+// Hisaab Kitaab — recurring expense / bill rule (v7.4, v7.10).
 //
 // A rule posts one Expense automatically, once per month, on
 // its day-of-month: "Electricity bill, Rs. 5,000, Bills, on the
@@ -6,7 +6,8 @@
 // month the rule last posted for — it is what stops the same
 // rule posting twice in one cycle. `dayOfMonth` is clamped to
 // the month's length when posting (a 31st rule posts on the
-// 30th in a 30-day month).
+// 30th in a 30-day month). A paused rule (v7.10) never posts
+// until it is resumed.
 
 class RecurringRule {
   final String id;
@@ -21,6 +22,10 @@ class RecurringRule {
   /// ('' = never posted yet).
   final String lastPostedMonth;
 
+  /// Paused rules never post (v7.10) — they keep their
+  /// lastPostedMonth untouched while paused.
+  final bool paused;
+
   const RecurringRule({
     required this.id,
     required this.title,
@@ -30,6 +35,7 @@ class RecurringRule {
     required this.dayOfMonth,
     required this.createdAt,
     this.lastPostedMonth = '',
+    this.paused = false,
   });
 
   RecurringRule copyWith({
@@ -39,6 +45,7 @@ class RecurringRule {
     String? budgetId,
     int? dayOfMonth,
     String? lastPostedMonth,
+    bool? paused,
   }) =>
       RecurringRule(
         id: id,
@@ -49,6 +56,7 @@ class RecurringRule {
         dayOfMonth: dayOfMonth ?? this.dayOfMonth,
         createdAt: createdAt,
         lastPostedMonth: lastPostedMonth ?? this.lastPostedMonth,
+        paused: paused ?? this.paused,
       );
 
   Map<String, dynamic> toJson() => {
@@ -60,6 +68,7 @@ class RecurringRule {
         'dayOfMonth': dayOfMonth,
         'createdAt': createdAt.toIso8601String(),
         'lastPostedMonth': lastPostedMonth,
+        'paused': paused,
       };
 
   factory RecurringRule.fromJson(Map<String, dynamic> json) =>
@@ -72,5 +81,6 @@ class RecurringRule {
         dayOfMonth: (json['dayOfMonth'] as num?)?.toInt() ?? 1,
         createdAt: DateTime.parse(json['createdAt'] as String),
         lastPostedMonth: (json['lastPostedMonth'] as String?) ?? '',
+        paused: json['paused'] as bool? ?? false,
       );
 }
