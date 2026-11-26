@@ -41,6 +41,7 @@ class _RecurringRuleSheetState extends State<_RecurringRuleSheet> {
   late String _category;
   late int _dayOfMonth;
   late String _budgetId;
+  late bool _paused;
   String? _error;
 
   @override
@@ -54,6 +55,7 @@ class _RecurringRuleSheetState extends State<_RecurringRuleSheet> {
     _category = rule?.category ?? expenseCategories.first;
     _dayOfMonth = rule?.dayOfMonth ?? 1;
     _budgetId = rule?.budgetId ?? '';
+    _paused = rule?.paused ?? false;
   }
 
   @override
@@ -101,6 +103,7 @@ class _RecurringRuleSheetState extends State<_RecurringRuleSheet> {
           category: _category,
           budgetId: budgetId,
           dayOfMonth: _dayOfMonth,
+          paused: _paused,
         ),
       );
     }
@@ -242,6 +245,19 @@ class _RecurringRuleSheetState extends State<_RecurringRuleSheet> {
                 onChanged: (value) {
                   if (value != null) setState(() => _budgetId = value);
                 },
+              ),
+            ],
+            // Pause a rule from its edit sheet (v7.10) — a
+            // paused rule never posts until it is resumed.
+            // New rules always start unpaused.
+            if (widget.rule != null) ...[
+              const SizedBox(height: 8),
+              SwitchListTile(
+                title: Text(strings.paused),
+                value: _paused,
+                onChanged: (value) =>
+                    setState(() => _paused = value),
+                contentPadding: EdgeInsets.zero,
               ),
             ],
             if (_error != null) ...[

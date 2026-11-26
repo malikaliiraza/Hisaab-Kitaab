@@ -467,6 +467,49 @@ class BudgetHomeScreen extends StatelessWidget {
                                           color: _secondary(context),
                                         ),
                                       ),
+                                      const SizedBox(height: 2),
+                                      // Next posting date (v7.10), or a
+                                      // Paused badge while the rule is paused.
+                                      if (rule.paused)
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? const Color(0xFF451A03)
+                                                    : const Color(0xFFFEF3C7),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            strings.paused,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color:
+                                                  CashWiseTheme.warning,
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        Text(
+                                          strings.nextPostDate(
+                                            store.formatDate(
+                                              store.nextPostDateFor(rule)!,
+                                            ),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: _secondary(context),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -478,6 +521,24 @@ class BudgetHomeScreen extends StatelessWidget {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                   ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    rule.paused
+                                        ? Icons.play_arrow
+                                        : Icons.pause,
+                                    size: 20,
+                                  ),
+                                  tooltip: rule.paused
+                                      ? strings.resume
+                                      : strings.pause,
+                                  onPressed: () async {
+                                    await store.updateRecurringRule(
+                                      rule.copyWith(
+                                        paused: !rule.paused,
+                                      ),
+                                    );
+                                  },
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.edit, size: 20),
