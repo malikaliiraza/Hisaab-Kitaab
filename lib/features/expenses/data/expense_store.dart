@@ -1905,17 +1905,50 @@ class ExpenseStore extends ChangeNotifier {
   /// Add another budget: a new book with its own expenses, and
   /// the whole system switches to it. The old budget keeps its
   /// own expenses (switch back anytime).
-  Future<void> addBudget(double amount, {String name = ''}) async {
+  ///
+  /// Rollover (v7.11): with `carryOver` the unspent balance of
+  /// the budget that is active right now is added to the new
+  /// budget's amount, and recorded on it as `carriedAmount` —
+  /// so the new budget's own screen can show how much came
+  /// over. Nothing is carried when the active budget is already
+  /// fully spent (or overspent), and the old budget's expenses
+  /// are never touched.
+  Future<void> addBudget(
+    double amount, {
+    String name = '',
+    bool carryOver = false,
+  }) async {
+    double carried = 0;
+    if (carryOver) carried = carryOverAvailable;
     final budget = BudgetPeriod(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      amount: amount,
+      // Microseconds, not milliseconds (v7.11): two budgets
+      // made in the same millisecond used to share one id,
+      // and the active-budget lookup then found the old one.
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      amount: amount + carried,
       createdAt: DateTime.now(),
       name: name.trim(),
+      carriedAmount: carried,
     );
     _budgets.add(budget);
     _activeBudgetId = budget.id;
     await _save();
     notifyListeners();
+  }
+
+  /// The budget a new budget would carry unspent money over
+  /// from (v7.11): the one that is active right now. Null when
+  /// there is no budget yet.
+  BudgetPeriod? get carryOverSource =>
+      _budgets.isEmpty ? null : activeBudget;
+
+  /// The unspent balance available to carry over (v7.11) —
+  /// what is left of the active budget, never below zero.
+  double get carryOverAvailable {
+    final source = carryOverSource;
+    if (source == null) return 0;
+    final left = budgetRemaining(source);
+    return left > 0 ? left : 0;
   }
 
   /// Rename a budget (v7.0) — anytime, from its own screen.
