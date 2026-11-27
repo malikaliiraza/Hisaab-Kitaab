@@ -193,6 +193,17 @@ class AppLocale {
   String get yourBudgets => _get('yourBudgets');
   String get active => _get('active');
   String get people => _get('people');
+  // Rollover (v7.11): carry the unspent balance of the active
+  // budget into a new budget.
+  String get carryOverUnspent => _get('carryOverUnspent');
+  String carryOverFrom(String name, String amount) => _get('carryOverFrom')
+      .replaceAll('{name}', name)
+      .replaceAll('{amount}', amount);
+  String carryOverPreview(String total, String carried) =>
+      _get('carryOverPreview')
+          .replaceAll('{total}', total)
+          .replaceAll('{carried}', carried);
+  String get carriedOver => _get('carriedOver');
   String budgetNowActive(String name) =>
       _get('budgetNowActive').replaceAll('{name}', name);
   String get enterPersonName => _get('enterPersonName');
@@ -527,13 +538,18 @@ const List<AppLocale> appLocales = [
           'Hisaab Kitaab is built by Malik Ali Raza — a Flutter & Web Developer and Software Engineering student at Riphah International University, Sahiwal. He builds real apps people actually use, with clean architecture, and is open to internships and freelance work.',
       'aboutPrivacy':
           'Privacy: your budgets, expenses and loans are stored only on this device. Hisaab Kitaab never uploads your financial data anywhere.',
-      'whatsNew': "What's new in v7.10",
+      'whatsNew': "What's new in v7.11",
       'whatsNewText':
-          '• Pause or resume recurring bills — pause a bill so it never posts while paused, and see the next posting date on every rule',
+          '• Carry over unspent money — when you add a new budget, the unspent balance of your current budget can move into it, and the new budget shows how much was carried over',
       'paymentTime': 'Payment time',
       'history': 'History',
       'editBudget': 'Edit budget',
       'addAnotherBudget': 'Add another budget',
+      'carryOverUnspent': 'Carry over unspent balance',
+      'carryOverFrom': 'Carry over {amount} unspent from {name}',
+      'carryOverPreview':
+          'New budget total {total} — includes {carried} carried over',
+      'carriedOver': 'Carried over',
       'yourBudgets': 'Your budgets',
       'active': 'Active',
       'people': 'people',
@@ -870,13 +886,18 @@ const List<AppLocale> appLocales = [
           'حساب کتاب ملک علی رضا نے بنائی ہے — ایک Flutter اور Web Developer اور Riphah International University, Sahiwal میں Software Engineering کے طالب علم۔ وہ صاف architecture کے ساتھ حقیقی ایپس بناتے ہیں جو لوگ واقعی استعمال کرتے ہیں، اور انٹرنشپ اور فری لانس کام کے لیے دستیاب ہیں۔',
       'aboutPrivacy':
           'رازداری: آپ کے بجٹ، خرچے اور قرض صرف اس آلے پر محفوظ ہوتے ہیں۔ حساب کتاب آپ کا مالی ڈیٹا کہیں بھی نہیں بھیجتا۔',
-      'whatsNew': 'v7.10 میں نیا کیا ہے',
+      'whatsNew': 'v7.11 میں نیا کیا ہے',
       'whatsNewText':
-          '• بار بار آنے والے بل روکیں یا دوبارہ شروع کریں — روکا ہوا بل اس وقت تک شامل نہیں ہوگا جب تک آپ اسے دوبارہ شروع نہ کریں، اور ہر بل کی اگلی تاریخ دیکھیں',
+          '• بچا ہوا پیسہ اگلے بجٹ میں منتقل کریں — جب آپ نیا بجٹ بنائیں تو موجودہ بجٹ کا بچا ہوا بیلنس اس میں شامل ہو سکتا ہے، اور نیا بجٹ بتائے گا کہ کتنا منتقل ہوا',
       'paymentTime': 'ادائیگی کا وقت',
       'history': 'تاریخ',
       'editBudget': 'بجٹ بدلیں',
       'addAnotherBudget': 'ایک اور بجٹ شامل کریں',
+      'carryOverUnspent': 'بچا ہوا بیلنس منتقل کریں',
+      'carryOverFrom': '{name} سے بچا ہوا {amount} منتقل کریں',
+      'carryOverPreview':
+          'نیا بجٹ کل {total} — اس میں {carried} پچھلے بجٹ سے شامل ہے',
+      'carriedOver': 'منتقل شدہ',
       'yourBudgets': 'آپ کے بجٹ',
       'active': 'فعال',
       'people': 'افراد',
