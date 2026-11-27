@@ -344,6 +344,13 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                             label: strings.budget,
                             amount: store.formatAmount(b.amount),
                           ),
+                          // Rollover (v7.11): how much of this
+                          // budget came over from the previous one.
+                          if (b.carriedAmount > 0)
+                            AmountRow(
+                              label: strings.carriedOver,
+                              amount: store.formatAmount(b.carriedAmount),
+                            ),
                           AmountRow(
                             label: strings.spentThisMonth,
                             amount: store.formatAmount(spent),
