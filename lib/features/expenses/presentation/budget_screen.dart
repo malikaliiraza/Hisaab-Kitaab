@@ -35,6 +35,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
   /// another budget (a new book with its own expenses).
   bool _addingNew = false;
 
+  /// Rollover (v7.11): carry the active budget's unspent
+  /// balance into the new budget. On by default whenever
+  /// anything is left to carry.
+  bool _carryOver = true;
+
   @override
   void initState() {
     super.initState();
@@ -63,7 +68,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
       return;
     }
     if (_addingNew) {
-      await store.addBudget(amount, name: _nameController.text);
+      await store.addBudget(
+        amount,
+        name: _nameController.text,
+        carryOver: _carryOver,
+      );
     } else {
       await store.setMonthlyBudget(amount, name: _nameController.text);
     }
@@ -72,7 +81,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
       SnackBar(
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        content: Text(strings.budgetUpdated(store.formatAmount(amount))),
+        // The active budget's amount after saving — with
+        // rollover (v7.11) that is the entered amount plus
+        // whatever was carried over.
+        content: Text(
+          strings.budgetUpdated(
+            store.formatAmount(store.monthlyBudgetPkr),
+          ),
+        ),
       ),
     );
     Navigator.of(context).pop();
@@ -261,6 +277,53 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
+                  // Rollover (v7.11): only when adding a new
+                  // budget and the current one still has money
+                  // left. The preview shows the real total the
+                  // new budget will start with.
+                  if (_addingNew && store.carryOverAvailable > 0) ...[
+                    SwitchListTile(
+                      title: Text(strings.carryOverUnspent),
+                      subtitle: Text(
+                        strings.carryOverFrom(
+                          store.budgetDisplayName(
+                            store.carryOverSource!,
+                          ),
+                          store.formatAmount(store.carryOverAvailable),
+                        ),
+                      ),
+                      value: _carryOver,
+                      onChanged: (value) {
+                        setState(() => _carryOver = value);
+                      },
+                    ),
+                    if (_carryOver)
+                      Builder(
+                        builder: (context) {
+                          final entered =
+                              double.tryParse(
+                                _amountController.text.trim(),
+                              ) ??
+                              0;
+                          if (entered <= 0) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              strings.carryOverPreview(
+                                store.formatAmount(
+                                  entered + store.carryOverAvailable,
+                                ),
+                                store.formatAmount(
+                                  store.carryOverAvailable,
+                                ),
+                              ),
+                              style: TextStyle(color: secondary),
+                            ),
+                          );
+                        },
+                      ),
+                    const SizedBox(height: 8),
+                  ],
                   _PrimaryButton(
                     label: strings.saveBudget,
                     onPressed: _save,
