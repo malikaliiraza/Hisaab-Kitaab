@@ -1,4 +1,4 @@
-// CashWise AI — a budget period (v5.9).
+// CashWise AI — a budget period (v5.9, v7.11).
 //
 // One monthly budget. The app used to have a single budget; since
 // v5.9 the user can keep several (e.g. one per month, or one per
@@ -7,6 +7,12 @@
 // works the same on each one. Expenses carry the id of the
 // budget they belong to; the active budget is the one the home
 // screens, chart and predictor read.
+//
+// Rollover (v7.11): when a new budget is created, the unspent
+// balance of the previous budget can be carried into it — the
+// new budget's amount already includes the carried sum, and
+// `carriedAmount` records how much of it came over, so the
+// budget's own screen can show it honestly.
 
 class BudgetPeriod {
   final String id;
@@ -18,18 +24,26 @@ class BudgetPeriod {
   /// back to "Budget 1", "Budget 2", ...
   final String name;
 
+  /// How much of this budget's amount was carried over from
+  /// the previous budget (v7.11) — 0 for budgets made before
+  /// rollover existed, or when nothing was carried.
+  final double carriedAmount;
+
   const BudgetPeriod({
     required this.id,
     required this.amount,
     required this.createdAt,
     this.name = '',
+    this.carriedAmount = 0,
   });
 
-  BudgetPeriod copyWith({double? amount, String? name}) => BudgetPeriod(
+  BudgetPeriod copyWith({double? amount, String? name, double? carriedAmount}) =>
+      BudgetPeriod(
         id: id,
         amount: amount ?? this.amount,
         createdAt: createdAt,
         name: name ?? this.name,
+        carriedAmount: carriedAmount ?? this.carriedAmount,
       );
 
   Map<String, dynamic> toJson() => {
@@ -37,6 +51,7 @@ class BudgetPeriod {
         'amount': amount,
         'createdAt': createdAt.toIso8601String(),
         'name': name,
+        'carriedAmount': carriedAmount,
       };
 
   factory BudgetPeriod.fromJson(Map<String, dynamic> json) =>
@@ -45,5 +60,6 @@ class BudgetPeriod {
         amount: (json['amount'] as num).toDouble(),
         createdAt: DateTime.parse(json['createdAt'] as String),
         name: json['name'] as String? ?? '',
+        carriedAmount: (json['carriedAmount'] as num?)?.toDouble() ?? 0,
       );
 }
