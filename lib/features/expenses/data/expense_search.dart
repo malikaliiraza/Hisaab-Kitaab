@@ -1,11 +1,12 @@
-// Hisaab Kitaab — expense search, filter and sort (v7.8).
+// Hisaab Kitaab — expense search, filter and sort (v7.8, note
+// matching v7.12).
 //
 // Pure Dart, no Flutter imports, so it is unit-testable on
 // its own. The budget detail screen and the Statistics
 // screen share this logic: a query matches an expense's
-// title OR its category (case-insensitive, trimmed), and
-// the sort orders the filtered list. Both functions return
-// a NEW list and never mutate the input.
+// title OR its category OR its note (case-insensitive,
+// trimmed), and the sort orders the filtered list. Both
+// functions return a NEW list and never mutate the input.
 
 import '../models/expense.dart';
 
@@ -29,7 +30,8 @@ List<Expense> filterExpenses(
     }
     if (q.isEmpty) return true;
     return e.title.toLowerCase().contains(q) ||
-        e.category.toLowerCase().contains(q);
+        e.category.toLowerCase().contains(q) ||
+        e.note.toLowerCase().contains(q);
   }).toList();
 }
 
