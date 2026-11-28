@@ -29,6 +29,7 @@ class AddExpenseScreen extends StatefulWidget {
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
   String _category = expenseCategories.first;
   DateTime _selectedDate = DateTime.now();
   String? _error;
@@ -37,6 +38,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -71,6 +73,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         amountPkr: amount,
         category: _category,
         date: _selectedDate,
+        note: _noteController.text.trim(),
       ),
     );
     if (mounted) Navigator.of(context).pop();
@@ -238,6 +241,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                         )
                         .toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _noteController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: strings.noteLabel,
+                      hintText: strings.noteHint,
+                    ),
                   ),
                   Align(
                     alignment: Alignment.centerLeft,
