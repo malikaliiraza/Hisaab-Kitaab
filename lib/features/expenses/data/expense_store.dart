@@ -727,6 +727,7 @@ class ExpenseStore extends ChangeNotifier {
           category: trimmed,
           date: e.date,
           budgetId: e.budgetId,
+          note: e.note,
         );
       }
     }
@@ -811,17 +812,18 @@ class ExpenseStore extends ChangeNotifier {
   }
 
   /// Every expense as one CSV file: Date, Title, Category,
-  /// Budget, Amount. Dates are ISO (yyyy-MM-dd) so any
-  /// spreadsheet opens the file cleanly.
+  /// Budget, Amount, Note (v7.12). Dates are ISO (yyyy-MM-dd)
+  /// so any spreadsheet opens the file cleanly.
   String exportExpensesCsv() => exportExpensesCsvFor(_expenses);
 
   /// The same CSV, but only for [expenses] (v7.8) — so a
   /// filtered list (search / category / sort) can be shared
   /// on its own. The header and field quoting are identical
-  /// to [exportExpensesCsv].
+  /// to [exportExpensesCsv]. The Note column (v7.12) is the
+  /// last field, empty when the expense has no note.
   String exportExpensesCsvFor(List<Expense> expenses) {
     final lines = <String>[
-      'Date,Title,Category,Budget,Amount (Rs.)',
+      'Date,Title,Category,Budget,Amount (Rs.),Note',
     ];
     for (final e in expenses) {
       final budget = _budgets
@@ -835,6 +837,7 @@ class ExpenseStore extends ChangeNotifier {
         _csvField(e.category),
         _csvField(budget == null ? '' : budgetDisplayName(budget)),
         e.amountPkr.toStringAsFixed(0),
+        _csvField(e.note),
       ].join(','));
     }
     return lines.join('\n');
@@ -1711,6 +1714,7 @@ class ExpenseStore extends ChangeNotifier {
               category: e.category,
               date: e.date,
               budgetId: _budgets.first.id,
+              note: e.note,
             );
           }
         }
@@ -1828,6 +1832,7 @@ class ExpenseStore extends ChangeNotifier {
       category: expense.category,
       date: expense.date,
       budgetId: _activeBudgetId,
+      note: expense.note,
     );
     _expenses.insert(0, stamped);
     await _save();
@@ -1836,10 +1841,11 @@ class ExpenseStore extends ChangeNotifier {
 
   /// Copy an expense as a new one dated today (v7.7) — the
   /// "Duplicate" action on the expense detail screen. Same
-  /// title, amount and category, a fresh id, today's date, the
-  /// active budget's book. Returns the new expense, or null
-  /// when there is no budget to add it to. [now] exists so
-  /// tests can fix the date; the screen always passes "now".
+  /// title, amount, category and note (v7.12), a fresh id,
+  /// today's date, the active budget's book. Returns the new
+  /// expense, or null when there is no budget to add it to.
+  /// [now] exists so tests can fix the date; the screen
+  /// always passes "now".
   Future<Expense?> duplicateExpense(
     Expense expense, {
     DateTime? now,
@@ -1852,6 +1858,7 @@ class ExpenseStore extends ChangeNotifier {
       category: expense.category,
       date: now ?? DateTime.now(),
       budgetId: _activeBudgetId,
+      note: expense.note,
     );
     _expenses.insert(0, copy);
     await _save();
