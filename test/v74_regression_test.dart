@@ -218,7 +218,7 @@ void main() {
     );
     final csv = store.exportExpensesCsv();
     final lines = csv.split('\n');
-    expect(lines.first, 'Date,Title,Category,Budget,Amount (Rs.)');
+    expect(lines.first, 'Date,Title,Category,Budget,Amount (Rs.),Note');
     expect(lines.length, 2);
     // The comma in the title is quoted, so the row stays one row.
     expect(lines[1], contains('"Groceries, weekly"'));

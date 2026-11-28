@@ -162,8 +162,8 @@ void main() {
       final filtered =
           filterExpenses(store.expenses, query: 'grocery');
       final csv = store.exportExpensesCsvFor(filtered);
-      expect(csv, 'Date,Title,Category,Budget,Amount (Rs.)\n'
-          '2026-11-20,Grocery run,Food,Home,500');
+      expect(csv, 'Date,Title,Category,Budget,Amount (Rs.),Note\n'
+          '2026-11-20,Grocery run,Food,Home,500,');
 
       // The full export still covers every expense, and the
       // comma/quote in a title is quoted the same way.
@@ -171,7 +171,7 @@ void main() {
       expect(full.split('\n'), hasLength(4));
       expect(
         full,
-        contains('2026-11-05,"Lunch, with ""friends""",Food,Home,800'),
+        contains('2026-11-05,"Lunch, with ""friends""",Food,Home,800,'),
       );
     });
   });
