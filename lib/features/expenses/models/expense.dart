@@ -9,6 +9,11 @@ class Expense {
   /// budget, kept for expenses saved before multi-budget).
   final String budgetId;
 
+  /// Optional free-text note (v7.12): where it was bought,
+  /// who it was for — anything the user wants to remember.
+  /// '' when no note was written.
+  final String note;
+
   const Expense({
     required this.id,
     required this.title,
@@ -16,6 +21,7 @@ class Expense {
     required this.category,
     required this.date,
     this.budgetId = '',
+    this.note = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +31,7 @@ class Expense {
         'category': category,
         'date': date.toIso8601String(),
         'budgetId': budgetId,
+        'note': note,
       };
 
   factory Expense.fromJson(Map<String, dynamic> json) => Expense(
@@ -34,6 +41,7 @@ class Expense {
         category: json['category'] as String,
         date: DateTime.parse(json['date'] as String),
         budgetId: (json['budgetId'] as String?) ?? '',
+        note: (json['note'] as String?) ?? '',
       );
 }
 
