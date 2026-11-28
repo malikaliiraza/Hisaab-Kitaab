@@ -29,6 +29,7 @@ class ExpenseDetailScreen extends StatefulWidget {
 class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   late final TextEditingController _titleController;
   late final TextEditingController _amountController;
+  late final TextEditingController _noteController;
   late String _category;
   late DateTime _selectedDate;
   bool _editing = false;
@@ -41,6 +42,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     _amountController = TextEditingController(
       text: widget.expense.amountPkr.toStringAsFixed(0),
     );
+    _noteController =
+        TextEditingController(text: widget.expense.note);
     _category = widget.expense.category;
     _selectedDate = widget.expense.date;
   }
@@ -49,6 +52,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -68,6 +72,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         amountPkr: amount,
         category: _category,
         date: _selectedDate,
+        note: _noteController.text.trim(),
       ),
     );
     if (mounted) setState(() => _editing = false);
@@ -186,6 +191,22 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                                 CashWiseTheme.secondaryTextFor(context),
                           ),
                         ),
+                        if (expense.note.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            strings.noteLabel,
+                            style: TextStyle(
+                              color:
+                                  CashWiseTheme.secondaryTextFor(context),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            expense.note,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -239,6 +260,15 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                                 setState(() => _category = value);
                               }
                             },
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _noteController,
+                            maxLines: 2,
+                            decoration: InputDecoration(
+                              labelText: strings.noteLabel,
+                              hintText: strings.noteHint,
+                            ),
                           ),
                           if (_error != null) ...[
                             const SizedBox(height: 12),
